@@ -1,10 +1,13 @@
 import React, { useReducer, useMemo, useEffect, memo, useState } from 'react';
-import { CreditCard, Wand2, Download, Play, RotateCcw, CheckCircle, BookOpen } from 'lucide-react';
+import { CreditCard, Wand2, Download, Play, RotateCcw, CheckCircle, BookOpen, Youtube } from 'lucide-react';
 import { Upload } from '../services/FileProcessor';
 import { ChunkedAIProcessor } from '../services/ChunkedAIProcessor';
 import { useFlashcards, updateCardWithSM2 } from '../contexts/FlashcardContext';
 import { extractJSONFromResponse } from '../services/lessonParser';
 import { ProgressIndicator } from './ProgressIndicator';
+import { fetchYouTubeData } from '../utils/youtubeUtils';
+import { cn } from '../lib/utils';
+import toast from 'react-hot-toast';
 
 // ================================================================================================
 // 1. STATE MANAGEMENT
@@ -12,6 +15,8 @@ import { ProgressIndicator } from './ProgressIndicator';
 
 type State = {
   selectedUploadId: string;
+  sourceType: 'document' | 'youtube';
+  youtubeUrl: string;
   cardCount: number;
   isGenerating: boolean;
   isStudyMode: boolean;
@@ -28,6 +33,8 @@ type Action =
 
 const initialState: State = {
   selectedUploadId: '',
+  sourceType: 'document',
+  youtubeUrl: '',
   cardCount: 10,
   isGenerating: false,
   isStudyMode: false,
@@ -98,22 +105,68 @@ const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStart
           <h3 className="text-xl font-bold text-foreground mb-2">Generate Flashcards</h3>
           <p className="text-muted-foreground text-sm">Create smart flashcards with spaced repetition</p>
         </div>
+        
+        {/* Source Type Toggle */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => dispatch({ type: 'SET_FIELD', field: 'sourceType', payload: 'document' })}
+            className={cn(
+              "flex-1 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2",
+              state.sourceType === 'document'
+                ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30"
+                : "glass-card border border-border/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+            )}
+          >
+            <BookOpen className="w-4 h-4" />
+            Document
+          </button>
+          <button
+            onClick={() => dispatch({ type: 'SET_FIELD', field: 'sourceType', payload: 'youtube' })}
+            className={cn(
+              "flex-1 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2",
+              state.sourceType === 'youtube'
+                ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30"
+                : "glass-card border border-border/50 text-muted-foreground hover:border-red-500/50 hover:text-foreground"
+            )}
+          >
+            <Youtube className="w-4 h-4" />
+            YouTube
+          </button>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-primary" />
-              Select Document
-            </label>
-            <select
-              value={state.selectedUploadId}
-              onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'selectedUploadId', payload: e.target.value })}
-              className="w-full px-5 py-3.5 glass-card border border-border/50 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 text-foreground bg-background/50 hover:border-primary/30 cursor-pointer"
-              disabled={processedUploads.length === 0}
-            >
-              <option value="">{processedUploads.length > 0 ? 'Choose a document...' : 'No documents processed'}</option>
-              {processedUploads.map((u) => <option key={u.id} value={u.id}>{u.filename}</option>)}
-            </select>
-          </div>
+          {state.sourceType === 'document' ? (
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-primary" />
+                Select Document
+              </label>
+              <select
+                value={state.selectedUploadId}
+                onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'selectedUploadId', payload: e.target.value })}
+                className="w-full px-5 py-3.5 glass-card border border-border/50 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 text-foreground bg-background/50 hover:border-primary/30 cursor-pointer"
+                disabled={processedUploads.length === 0}
+              >
+                <option value="">{processedUploads.length > 0 ? 'Choose a document...' : 'No documents processed'}</option>
+                {processedUploads.map((u) => <option key={u.id} value={u.id}>{u.filename}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Youtube className="w-4 h-4 text-red-500" />
+                YouTube URL
+              </label>
+              <input
+                type="url"
+                value={state.youtubeUrl}
+                onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'youtubeUrl', payload: e.target.value })}
+                placeholder="https://youtube.com/watch?v=..."
+                className="w-full px-5 py-3.5 glass-card border border-border/50 rounded-xl focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all duration-200 text-foreground bg-background/50 hover:border-red-500/30"
+              />
+            </div>
+          )}
+          
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary" />
@@ -135,7 +188,7 @@ const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStart
         )}
         
         <div className="flex flex-wrap gap-4">
-          <button onClick={onGenerate} disabled={!state.selectedUploadId || state.isGenerating} className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
+          <button onClick={onGenerate} disabled={(state.sourceType === 'document' ? !state.selectedUploadId : !state.youtubeUrl.trim()) || state.isGenerating} className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
             <Wand2 className="w-5 h-5" />
             {state.isGenerating ? `Generating... ${Math.round(state.generationProgress)}%` : 'Generate Cards'}
           </button>
@@ -228,37 +281,99 @@ const StudySession = memo(({ onReview, onEndSession }: { onReview: (id: string, 
 // 3. MAIN COMPONENT
 // ================================================================================================
 
+interface FlashcardManagerProps {
+  uploads: Upload[];
+  apiKey?: string;
+}
+
 export const FlashcardManager: React.FC<FlashcardManagerProps> = ({ uploads, apiKey }) => {
   const { state: flashcardState, dispatch: flashcardDispatch } = useFlashcards();
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const processedUploads = useMemo(() => uploads.filter(u => u.processed && u.status === 'completed'), [uploads]);
-  const selectedUpload = useMemo(() => processedUploads.find(u => u.id === state.selectedUploadId), [processedUploads, state.selectedUploadId]);
+  const processedUploads = useMemo(() => uploads.filter((u: Upload) => u.processed && u.status === 'completed'), [uploads]);
+  const selectedUpload = useMemo(() => processedUploads.find((u: Upload) => u.id === state.selectedUploadId), [processedUploads, state.selectedUploadId]);
 
   useEffect(() => {
     flashcardDispatch({ type: 'UPDATE_DUE_CARDS' });
   }, [flashcardState.cards, flashcardDispatch]);
 
   const handleGenerate = async () => {
-    if (!selectedUpload) {
-      dispatch({ type: 'GENERATION_COMPLETE', error: 'Please select a processed document first.' });
-      return;
-    }
     if (!apiKey) {
-      dispatch({ type: 'GENERATION_COMPLETE', error: 'API key is missing. Please add it in Settings.' });
-      return;
-    }
-    if (!selectedUpload.fullText || selectedUpload.fullText.trim() === '') {
-      dispatch({ type: 'GENERATION_COMPLETE', error: 'The selected document appears to be empty.' });
+      const errorMsg = 'API key is missing. Please add it in Settings.';
+      dispatch({ type: 'GENERATION_COMPLETE', error: errorMsg });
+      toast.error(errorMsg);
       return;
     }
 
+    let sourceText = '';
+
     dispatch({ type: 'START_GENERATION' });
     try {
+      // Get source text from document or YouTube
+      if (state.sourceType === 'document') {
+        if (!selectedUpload) {
+          const errorMsg = 'Please select a processed document first.';
+          dispatch({ type: 'GENERATION_COMPLETE', error: errorMsg });
+          toast.error(errorMsg);
+          return;
+        }
+        if (!selectedUpload.fullText || selectedUpload.fullText.trim() === '') {
+          const errorMsg = 'The selected document appears to be empty.';
+          dispatch({ type: 'GENERATION_COMPLETE', error: errorMsg });
+          toast.error(errorMsg);
+          return;
+        }
+        sourceText = selectedUpload.fullText;
+      } else {
+        // YouTube source
+        if (!state.youtubeUrl.trim()) {
+          const errorMsg = 'Please enter a YouTube URL.';
+          dispatch({ type: 'GENERATION_COMPLETE', error: errorMsg });
+          toast.error(errorMsg);
+          return;
+        }
+        
+        try {
+          dispatch({ type: 'UPDATE_PROGRESS', progress: 5, message: 'Validating YouTube URL...' });
+          
+          dispatch({ type: 'UPDATE_PROGRESS', progress: 10, message: 'Fetching video information...' });
+          const ytData = await fetchYouTubeData(state.youtubeUrl);
+          
+          dispatch({ type: 'UPDATE_PROGRESS', progress: 25, message: `Found: "${ytData.title}"` });
+          toast.success(`Found: "${ytData.title}"`);
+          
+          // Validate transcript length
+          if (ytData.transcript.length < 100) {
+            throw new Error('The transcript is too short to generate flashcards. Please try a longer video.');
+          }
+          
+          sourceText = ytData.transcript;
+          dispatch({ type: 'UPDATE_PROGRESS', progress: 30, message: `Processing ${Math.round(ytData.transcript.length / 1000)}K characters of content...` });
+        } catch (ytError: any) {
+          const errorMsg = ytError.message || 'Failed to fetch YouTube data';
+          dispatch({ type: 'GENERATION_COMPLETE', error: errorMsg });
+          toast.error(errorMsg);
+          console.error('YouTube fetch error:', ytError);
+          return;
+        }
+      }
+      
+      // Validate source text
+      if (!sourceText || sourceText.trim().length < 50) {
+        const errorMsg = 'Source content is too short to generate flashcards.';
+        dispatch({ type: 'GENERATION_COMPLETE', error: errorMsg });
+        toast.error(errorMsg);
+        return;
+      }
+
+      console.log('Starting flashcard generation with', sourceText.length, 'characters');
       const processor = new ChunkedAIProcessor(apiKey);
-      const response = await processor.generateChunkedFlashcards(selectedUpload.fullText, state.cardCount, (progress, message) => {
-        dispatch({ type: 'UPDATE_PROGRESS', progress, message: message || 'Processing...' });
+      const response = await processor.generateChunkedFlashcards(sourceText, state.cardCount, (progress, message) => {
+        console.log('Progress update:', progress, message);
+        dispatch({ type: 'UPDATE_PROGRESS', progress: progress || 0, message: message || 'Processing...' });
       });
+      
+      console.log('Flashcard generation response received:', response?.substring(0, 100));
       const parsed = extractJSONFromResponse(response);
       
       let flashcardArray: any[] | null = null;
@@ -278,16 +393,21 @@ export const FlashcardManager: React.FC<FlashcardManagerProps> = ({ uploads, api
       }
 
       const newFlashcards = flashcardArray.map((card: any) => ({
-        uploadId: state.selectedUploadId,
+        uploadId: state.sourceType === 'document' ? state.selectedUploadId : `youtube-${Date.now()}`,
         question: card.question || 'No Question Provided',
         answer: card.answer || 'No Answer Provided',
       }));
       
-      flashcardDispatch({ type: 'ADD_CARDS', cards: newFlashcards });
+      console.log('Generated', newFlashcards.length, 'flashcards');
+      flashcardDispatch({ type: 'ADD_CARDS', payload: newFlashcards });
       dispatch({ type: 'GENERATION_COMPLETE' });
+      toast.success(`Successfully generated ${newFlashcards.length} flashcards!`);
 
     } catch (error: any) {
-      dispatch({ type: 'GENERATION_COMPLETE', error: error.message });
+      const errorMsg = error.message || 'Failed to generate flashcards';
+      console.error('Flashcard generation error:', error);
+      dispatch({ type: 'GENERATION_COMPLETE', error: errorMsg });
+      toast.error(errorMsg);
     }
   };
   
@@ -295,7 +415,7 @@ export const FlashcardManager: React.FC<FlashcardManagerProps> = ({ uploads, api
     const card = flashcardState.cards.find(c => c.id === cardId);
     if (card) {
       const updates = updateCardWithSM2(card, quality);
-      flashcardDispatch({ type: 'UPDATE_CARD', cardId, updates });
+      flashcardDispatch({ type: 'UPDATE_CARD', payload: { cardId, updates } });
     }
   };
   

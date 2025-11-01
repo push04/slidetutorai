@@ -1,6 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { storage } from '../lib/storage';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface LocalUser {
   id: string;
@@ -69,12 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initUser();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (_email: string, _password: string) => {
     // No-op for local storage mode - always "signed in"
     return Promise.resolve();
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (_email: string, _password: string, fullName: string) => {
     // Update profile name
     const profile: any = await storage.getProfile();
     if (profile) {

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage - SlideTutor AI</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 20px;
+            background: #0f1117;
+            color: #e2e8f0;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .success {
+            background: #10b981;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>SlideTutor AI - Storage Manager</h1>
+    <p>Use this page to reset your localStorage if you're experiencing issues with uploads or data display.</p>
+    
+    <button onclick="clearStorage()">Clear All localStorage Data</button>
+    <button onclick="window.location.href='/'">Go to App</button>
+    
+    <div class="success" id="success">✓ Storage cleared successfully! You can now go back to the app.</div>
+    
+    <script>
+        function clearStorage() {
+            localStorage.clear();
+            indexedDB.databases().then(dbs => {
+                dbs.forEach(db => {
+                    indexedDB.deleteDatabase(db.name);
+                });
+            });
+            document.getElementById('success').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

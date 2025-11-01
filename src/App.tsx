@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
@@ -16,13 +16,11 @@ import { FlashcardProvider } from './contexts/FlashcardContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { LoadingSpinner } from './components/LoadingSpinner';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { KeyboardShortcutsGuide } from './components/KeyboardShortcutsGuide';
-import { useUploads, useCreateUpload, useDeleteUpload, useUserProfile } from './hooks/useLocalStorage';
+import { useUploads, useCreateUpload, useDeleteUpload } from './hooks/useLocalStorage';
 import { SocraticTutor } from './components/SocraticTutor';
 import { StudyTimer } from './components/StudyTimer';
-import { AdaptiveLearning } from './components/AdaptiveLearning';
 import { VideoToLesson } from './components/VideoToLesson';
 import { ImageRecognition } from './components/ImageRecognition';
 
@@ -36,17 +34,12 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const { isOpen: isPaletteOpen, close: closePalette } = useCommandPalette();
   
-  // Use Supabase hooks for persistent storage
+  // Use localStorage hooks for persistent storage
   const { 
-    data: uploadsData, 
-    refetch: refetchUploads 
+    data: uploadsData
   } = useUploads();
   const createUploadMutation = useCreateUpload();
   const deleteUploadMutation = useDeleteUpload();
-  const { 
-    data: userProfile, 
-    refetch: refetchProfile 
-  } = useUserProfile();
 
   const handleAddUpload = useCallback(async (
     file: File,
@@ -77,19 +70,14 @@ function AppContent() {
       await createUploadMutation.mutateAsync({
         id: newUpload.id,
         filename: newUpload.filename,
-        original_filename: file.name,
-        file_size: newUpload.size,
-        mime_type: file.type,
-        storage_path: `uploads/${newUpload.id}/${file.name}`,
-        full_text: newUpload.fullText,
-        slide_count: newUpload.slideCount,
+        size: newUpload.size,
+        uploadedAt: newUpload.uploadedAt,
+        fullText: newUpload.fullText,
+        slideCount: newUpload.slideCount,
         status: newUpload.status,
         processed: newUpload.processed,
         indexed: newUpload.indexed,
-        metadata: {},
-        error_message: newUpload.errorMessage || null,
-        version: 1,
-        parent_upload_id: null,
+        errorMessage: newUpload.errorMessage || undefined,
       });
       
       opts.onProgress(100);
@@ -105,17 +93,17 @@ function AppContent() {
     deleteUploadMutation.mutate(id);
   }, [deleteUploadMutation]);
   
-  const uploads = uploadsData || [];
+  const uploads = (uploadsData || []) as Upload[];
   // Get API key from environment
   const apiKey = (import.meta.env?.VITE_OPENROUTER_API_KEY ?? '').trim();
   
   // A map of tab keys to their corresponding components for cleaner rendering
   const viewMap: Record<TabType, React.ReactNode> = {
-    dashboard: <EnhancedDashboard uploads={uploads} onNavigate={setActiveTab} />,
+    dashboard: <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={setActiveTab} />,
     upload: (
       <div className="space-y-6">
         <UploadManager
-          uploads={uploads}
+          uploads={uploads as Upload[]}
           onAddUpload={handleAddUpload}
           onDeleteUpload={handleDeleteUpload}
         />
@@ -131,17 +119,17 @@ function AppContent() {
         apiKey={apiKey}
       />
     ),
-    lessons: <LessonGenerator uploads={uploads} apiKey={apiKey} />,
-    quiz: <QuizManager uploads={uploads} apiKey={apiKey} />,
-    flashcards: <FlashcardManager uploads={uploads} apiKey={apiKey} />,
-    chat: <ChatInterface uploads={uploads} apiKey={apiKey} />,
+    lessons: <LessonGenerator uploads={uploads as Upload[]} apiKey={apiKey} />,
+    quiz: <QuizManager uploads={uploads as Upload[]} apiKey={apiKey} />,
+    flashcards: <FlashcardManager uploads={uploads as Upload[]} apiKey={apiKey} />,
+    chat: <ChatInterface uploads={uploads as Upload[]} apiKey={apiKey} />,
     'ai-tutor': <SocraticTutor apiKey={apiKey} />,
     'study-timer': (
       <StudyTimer
         onSessionComplete={() => {}}
       />
     ),
-    settings: <Settings uploads={uploads} />,
+    settings: <Settings uploads={uploads as Upload[]} />,
   };
 
   return (
@@ -151,7 +139,7 @@ function AppContent() {
         <EnhancedNavigation activeTab={activeTab} onTabChange={setActiveTab} />
         <main className="lg:ml-72 px-4 py-8 pb-20 md:pb-8">
           <div className="container mx-auto max-w-7xl">
-            {viewMap[activeTab] || <EnhancedDashboard uploads={uploads} onNavigate={setActiveTab} />}
+            {viewMap[activeTab] || <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={setActiveTab} />}
           </div>
         </main>
       </div>

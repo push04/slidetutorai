@@ -452,13 +452,38 @@ export const LessonGenerator: React.FC<LessonGeneratorProps> = ({ uploads, apiKe
         // YouTube source
         if (!state.youtubeUrl.trim()) {
           dispatch({ type: 'GENERATION_FAILURE', payload: 'Please enter a YouTube URL.' });
+          toast.error('Please enter a YouTube URL');
           return;
         }
         
-        dispatch({ type: 'UPDATE_PROGRESS', payload: { progress: 10, message: 'Fetching YouTube video data...' } });
-        const ytData = await fetchYouTubeData(state.youtubeUrl);
-        sourceText = ytData.transcript;
-        dispatch({ type: 'UPDATE_PROGRESS', payload: { progress: 30, message: `Processing "${ytData.title}"...` } });
+        dispatch({ type: 'UPDATE_PROGRESS', payload: { progress: 5, message: 'Validating YouTube URL...' } });
+        
+        try {
+          dispatch({ type: 'UPDATE_PROGRESS', payload: { progress: 10, message: 'Fetching video information...' } });
+          const ytData = await fetchYouTubeData(state.youtubeUrl);
+          
+          dispatch({ type: 'UPDATE_PROGRESS', payload: { progress: 25, message: `Found: "${ytData.title}"` } });
+          
+          // Validate transcript length
+          if (ytData.transcript.length < 100) {
+            throw new Error('The transcript is too short to generate a meaningful lesson. Please try a longer video.');
+          }
+          
+          sourceText = ytData.transcript;
+          dispatch({ type: 'UPDATE_PROGRESS', payload: { progress: 30, message: `Processing ${Math.round(ytData.transcript.length / 1000)}K characters of content...` } });
+          toast.success(`Successfully loaded transcript for "${ytData.title}"`);
+        } catch (ytError: any) {
+          dispatch({ type: 'GENERATION_FAILURE', payload: ytError.message || 'Failed to fetch YouTube data' });
+          toast.error(ytError.message || 'Failed to fetch YouTube transcript');
+          return;
+        }
+      }
+      
+      // Validate source text
+      if (!sourceText || sourceText.trim().length < 50) {
+        dispatch({ type: 'GENERATION_FAILURE', payload: 'Source content is too short to generate a lesson.' });
+        toast.error('Content is too short');
+        return;
       }
 
       const processor = new ChunkedAIProcessor(apiKey);
@@ -466,13 +491,29 @@ export const LessonGenerator: React.FC<LessonGeneratorProps> = ({ uploads, apiKe
         sourceText,
         'intermediate',
         (progress, message) => {
-          dispatch({ type: 'UPDATE_PROGRESS', payload: { progress, message: message || 'Processing...' } });
+          dispatch({ type: 'UPDATE_PROGRESS', payload: { progress: progress || 0, message: message || 'Processing...' } });
         }
       ); 
       const parsedContent = extractJSONFromResponse(rawContent);
       
       dispatch({ type: 'GENERATION_SUCCESS', payload: { raw: rawContent, parsed: parsedContent || null } });
-      toast.success('Lesson generated successfully!');
+      
+      // Save lesson to localStorage for persistence
+      try {
+        const { storage } = await import('../lib/storage');
+        await storage.createLesson({
+          id: `lesson-${Date.now()}`,
+          title: state.sourceType === 'youtube' ? `Lesson from YouTube video` : `Lesson from ${selectedUpload?.filename || 'document'}`,
+          content: rawContent,
+          sourceType: state.sourceType,
+          sourceId: state.sourceType === 'document' ? state.selectedUploadId : state.youtubeUrl,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (saveError) {
+        console.error('Failed to save lesson:', saveError);
+      }
+      
+      toast.success('Lesson generated and saved successfully!');
     } catch (err: any) {
       dispatch({ type: 'GENERATION_FAILURE', payload: err.message || 'An unknown error occurred.' });
       toast.error(err.message || 'Failed to generate lesson');

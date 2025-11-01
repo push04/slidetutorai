@@ -438,17 +438,24 @@ export class OpenRouterAPI {
       throw new Error('No content provided for flashcard generation');
     }
 
+    console.log('[OpenRouterAPI] Starting flashcard generation, content length:', content.length, 'cards:', cardCount);
+    
     const estimatedTokens = estimateTokenCount(content);
     const needsChunking = estimatedTokens > 3000;
+    
+    console.log('[OpenRouterAPI] Estimated tokens:', estimatedTokens, 'needs chunking:', needsChunking);
 
     if (!needsChunking) {
+      console.log('[OpenRouterAPI] Using single-chunk generation');
       onProgress?.(10, 'Generating flashcards...');
       const result = await this.generateSingleFlashcardSet(content, cardCount);
       onProgress?.(100, 'Complete!');
+      console.log('[OpenRouterAPI] Single-chunk generation complete');
       return result;
     }
 
     // For large content, split into chunks
+    console.log('[OpenRouterAPI] Starting chunked generation');
     onProgress?.(5, 'Preparing content chunks...');
     const chunks = chunkText(content, {
       maxChunkSize: 4000,
@@ -457,6 +464,7 @@ export class OpenRouterAPI {
     });
 
     const cardsPerChunk = Math.ceil(cardCount / chunks.length);
+    console.log('[OpenRouterAPI] Split into', chunks.length, 'chunks,', cardsPerChunk, 'cards per chunk');
     onProgress?.(10, `Generating ${cardCount} flashcards from ${chunks.length} chunks...`);
     
     const allCards: any[] = [];
@@ -464,6 +472,7 @@ export class OpenRouterAPI {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const progressPercent = 10 + ((i + 1) / chunks.length) * 85;
+      console.log(`[OpenRouterAPI] Processing chunk ${i + 1}/${chunks.length}, progress: ${Math.round(progressPercent)}%`);
       onProgress?.(
         Math.round(progressPercent),
         `Processing chunk ${i + 1} of ${chunks.length}...`
@@ -472,12 +481,14 @@ export class OpenRouterAPI {
       const chunkFlashcards = await this.generateSingleFlashcardSet(chunk.text, cardsPerChunk);
       const parsed = JSON.parse(chunkFlashcards);
       if (parsed.flashcards && Array.isArray(parsed.flashcards)) {
+        console.log(`[OpenRouterAPI] Chunk ${i + 1} generated ${parsed.flashcards.length} cards`);
         allCards.push(...parsed.flashcards);
       }
     }
 
     // Limit to requested card count
     const finalCards = allCards.slice(0, cardCount);
+    console.log('[OpenRouterAPI] Chunked generation complete, total cards:', finalCards.length);
     onProgress?.(100, 'Complete!');
     
     return JSON.stringify({ flashcards: finalCards });

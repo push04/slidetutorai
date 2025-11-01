@@ -2,7 +2,6 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import {
@@ -10,7 +9,6 @@ import {
   ChevronRight,
   Flag,
   Wand2,
-  Play,
   Brain,
   Clock3,
   Award,
@@ -21,12 +19,16 @@ import {
   Copy,
   RefreshCw,
   ListChecks,
+  Youtube,
+  BookOpen,
 } from 'lucide-react';
 import type { Upload } from '../services/FileProcessor';
 import { ChunkedAIProcessor } from '../services/ChunkedAIProcessor';
 import { OpenRouterAPI } from '../services/OpenRouterAPI';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ProgressIndicator } from './ProgressIndicator';
+import { fetchYouTubeData } from '../utils/youtubeUtils';
+import { cn } from '../lib/utils';
 
 /* ================================================================================================
    Types
@@ -149,6 +151,8 @@ function ProgressSlimLight({ value, label }: { value: number; label: string }) {
 export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => {
   // ---------------------------------- generation ----------------------------------
   const [selectedUpload, setSelectedUpload] = useState('');
+  const [sourceType, setSourceType] = useState<'document' | 'youtube'>('document');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(10);
   const [generating, setGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -249,23 +253,72 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
       setGenerationError('Please provide an API key in Settings.');
       return;
     }
-    if (!selectedUpload) {
-      setGenerationError('Select a processed document first.');
-      return;
-    }
-    const upload = uploads.find((u) => u.id === selectedUpload);
-    if (!upload?.fullText) {
-      setGenerationError('Selected document has no text content.');
-      return;
-    }
+
+    let sourceText = '';
 
     setGenerating(true);
     setGenerationProgress(0);
     setGenerationMessage('Starting quiz generation...');
+
     try {
+      // Get source text from document or YouTube
+      if (sourceType === 'document') {
+        if (!selectedUpload) {
+          setGenerationError('Select a processed document first.');
+          setGenerating(false);
+          return;
+        }
+        const upload = uploads.find((u) => u.id === selectedUpload);
+        if (!upload?.fullText) {
+          setGenerationError('Selected document has no text content.');
+          setGenerating(false);
+          return;
+        }
+        sourceText = upload.fullText;
+      } else {
+        // YouTube source
+        if (!youtubeUrl.trim()) {
+          setGenerationError('Please enter a YouTube URL.');
+          setGenerating(false);
+          return;
+        }
+        
+        try {
+          setGenerationProgress(5);
+          setGenerationMessage('Validating YouTube URL...');
+          
+          setGenerationProgress(10);
+          setGenerationMessage('Fetching video information...');
+          const ytData = await fetchYouTubeData(youtubeUrl);
+          
+          setGenerationProgress(25);
+          setGenerationMessage(`Found: "${ytData.title}"`);
+          
+          // Validate transcript length
+          if (ytData.transcript.length < 100) {
+            throw new Error('The transcript is too short to generate quiz questions. Please try a longer video.');
+          }
+          
+          sourceText = ytData.transcript;
+          setGenerationProgress(30);
+          setGenerationMessage(`Processing ${Math.round(ytData.transcript.length / 1000)}K characters of content...`);
+        } catch (ytError: any) {
+          setGenerationError(ytError.message || 'Failed to fetch YouTube data');
+          setGenerating(false);
+          return;
+        }
+      }
+      
+      // Validate source text
+      if (!sourceText || sourceText.trim().length < 50) {
+        setGenerationError('Source content is too short to generate quiz questions.');
+        setGenerating(false);
+        return;
+      }
+
       const processor = new ChunkedAIProcessor(apiKey);
-      const raw = await processor.generateChunkedQuiz(upload.fullText, questionCount, (progress, message) => {
-        setGenerationProgress(progress);
+      const raw = await processor.generateChunkedQuiz(sourceText, questionCount, (progress, message) => {
+        setGenerationProgress(progress || 0);
         setGenerationMessage(message || 'Processing...');
       });
       const questions = extractQuestions(raw);
@@ -283,6 +336,22 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
       setReportText('');
       setReportError(null);
       setElapsedMs(0);
+      
+      // Save quiz to localStorage for persistence
+      try {
+        const { storage } = await import('../lib/storage');
+        await storage.createQuiz({
+          id: `quiz-${Date.now()}`,
+          title: sourceType === 'youtube' ? `Quiz from YouTube video` : `Quiz from ${uploads.find(u => u.id === selectedUpload)?.filename || 'document'}`,
+          questions: questions,
+          sourceType: sourceType,
+          sourceId: sourceType === 'document' ? selectedUpload : youtubeUrl,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (saveError) {
+        console.error('Failed to save quiz:', saveError);
+      }
+      
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e: any) {
       console.error(e);
@@ -290,7 +359,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
     } finally {
       setGenerating(false);
     }
-  }, [apiKey, questionCount, selectedUpload, uploads]);
+  }, [apiKey, questionCount, selectedUpload, sourceType, youtubeUrl, uploads]);
 
   const handleAnswer = (idx: number) => {
     if (!session || answered !== -1) return; // already answered
@@ -512,7 +581,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
                     <h3 className="font-semibold text-foreground">
                       Q{i + 1}. {q.question}
                     </h3>
-                    <span className={`inline-flex items-center gap-1 text-sm rounded-full px-2 py-0.5 ${isRight ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                    <span className={`inline-flex items-center gap-1 text-sm rounded-full px-2 py-0.5 ${isRight ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
                       {isRight ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                       {isRight ? 'Correct' : 'Wrong'}
                     </span>
@@ -524,7 +593,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
                         oi === correct
                           ? 'border-success bg-success/10'
                           : oi === user
-                          ? 'border-destructive/50 bg-destructive/10'
+                          ? 'border-error/50 bg-error/10'
                           : 'border-border/40 bg-muted/20';
                       return (
                         <div key={oi} className={`${base} ${cls}`}>
@@ -582,7 +651,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
           )}
 
           {reportError && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 text-destructive px-3 py-2 text-sm">
+            <div className="rounded-lg border border-error/50 bg-error/10 text-error px-3 py-2 text-sm">
               {reportError}
             </div>
           )}
@@ -711,7 +780,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
               const cls = showRight
                 ? 'border-success bg-success/10'
                 : showWrong
-                ? 'border-destructive/50 bg-destructive/10'
+                ? 'border-error bg-error/10 text-error'
                 : isSelected
                 ? 'border-secondary bg-secondary/10'
                 : 'border-border hover:border-primary/50 hover:bg-muted/20';
@@ -752,7 +821,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
 
       <div className="glass-card border rounded-xl p-6 shadow-sm">
         {generationError && (
-          <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive px-3 py-2 text-sm">
+          <div className="mb-4 rounded-lg border border-error/50 bg-error/10 text-error px-3 py-2 text-sm">
             {generationError}
           </div>
         )}
@@ -766,22 +835,75 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
           </div>
         )}
 
+        {/* Source Type Toggle */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => {
+              setSourceType('document');
+              setGenerationError(null);
+            }}
+            className={cn(
+              "flex-1 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2",
+              sourceType === 'document'
+                ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30"
+                : "glass-card border border-border/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+            )}
+          >
+            <BookOpen className="w-4 h-4" />
+            Document
+          </button>
+          <button
+            onClick={() => {
+              setSourceType('youtube');
+              setGenerationError(null);
+            }}
+            className={cn(
+              "flex-1 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2",
+              sourceType === 'youtube'
+                ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30"
+                : "glass-card border border-border/50 text-muted-foreground hover:border-red-500/50 hover:text-foreground"
+            )}
+          >
+            <Youtube className="w-4 h-4" />
+            YouTube
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Select Document</label>
-            <select
-              value={selectedUpload}
-              onChange={(e) => setSelectedUpload(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-            >
-              <option value="">{processedUploads.length ? 'Choose a document…' : 'No documents processed'}</option>
-              {processedUploads.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.filename}
-                </option>
-              ))}
-            </select>
-          </div>
+          {sourceType === 'document' ? (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-primary" />
+                Select Document
+              </label>
+              <select
+                value={selectedUpload}
+                onChange={(e) => setSelectedUpload(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+              >
+                <option value="">{processedUploads.length ? 'Choose a document…' : 'No documents processed'}</option>
+                {processedUploads.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.filename}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <Youtube className="w-4 h-4 text-red-500" />
+                YouTube URL
+              </label>
+              <input
+                type="url"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-colors"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Number of Questions</label>
@@ -801,7 +923,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
           <div className="flex items-end">
             <button
               onClick={generateQuiz}
-              disabled={!selectedUpload || generating || !apiKey}
+              disabled={(sourceType === 'document' ? !selectedUpload : !youtubeUrl.trim()) || generating || !apiKey}
               className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-white font-semibold shadow-sm hover:bg-secondary/90 active:scale-[.99] disabled:bg-muted transition-all"
             >
               {generating ? (

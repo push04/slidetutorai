@@ -27,7 +27,7 @@ class StorageService {
       return;
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
@@ -106,7 +106,7 @@ class StorageService {
   async create<T extends { id: string }>(storeName: string, data: T): Promise<T> {
     const item = {
       ...data,
-      createdAt: data.createdAt || new Date().toISOString(),
+      createdAt: (data as any).createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
@@ -273,8 +273,8 @@ class StorageService {
     return profiles[0] || null;
   };
   setProfile = async (data: any) => {
-    const existing = await this.getProfile();
-    if (existing) {
+    const existing: any = await this.getProfile();
+    if (existing && existing.id) {
       return this.update(STORES.profile, existing.id, data);
     }
     return this.create(STORES.profile, { ...data, id: 'default-profile' });
