@@ -1,0 +1,136 @@
+Build a next-generation “SlideTutor” learning app inspired by https://slidetutor.netlify.app/
+, but far more powerful and delightful. You own the visual design — create a beautiful, modern, responsive interface with seamless Dark/Light themes, fluid micro-interactions, and top-tier accessibility. I want a finished product that feels premium, addictive to learn with, and built to scale.
+
+NON-NEGOTIABLES
+• Keep Lessons, Quizzes, and Flashcards working flawlessly end-to-end.
+• Use Supabase for database, authentication, storage, realtime presence, and vector/semantic features.
+• I will host on Netlify and supply the AI API key as an environment variable; never expose secrets in the client.
+• Prioritize performance, accessibility, and privacy.
+• The UI/UX is entirely up to you — make it elegant, minimal, and joyful to use in both Dark and Light modes.
+
+VISION
+“SlideTutor” helps learners turn any content into structured lessons, adaptive quizzes, and spaced-repetition flashcards. It should feel like a smart study companion: anticipatory, encouraging, and personal.
+
+CORE EXPERIENCES (MUST DELIVER)
+
+Lessons
+– Rich, distraction-free reading with beautiful typography, tag chips, estimated reading time, and progress indicators.
+– Support content from manual authoring, file uploads (PDF/PPT/Markdown), and page section extraction.
+– AI-generated key-point summaries and “What you’ll learn” previews.
+– Per-lesson notes, highlights, and bookmarks; one-click add-to-deck and add-to-quiz.
+– Search and filter by tag, topic, difficulty, status (New / Learning / Review).
+
+Quizzes
+– Always available: generate question sets from any lesson.
+– Mix question types: multiple-choice with smart distractors, true/false, cloze (fill-in), and short answer.
+– Show rationale/explanations, confidence prompts, and quick links to the relevant lesson section.
+– Adaptive difficulty that reacts to user performance and confidence.
+– Review mode that focuses on weak areas and prerequisite gaps.
+
+Flashcards & Spaced Repetition
+– Polished card player with flip, swipe/keyboard grading (Again/Hard/Good/Easy), and streak feedback.
+– Due-today counters, deck filters (tag, difficulty, due), and “cram” mode.
+– Automatic card generation from lesson text, plus manual authoring and easy editing.
+– Progress, streak, mastery level, and retention estimates.
+
+ADVANCED PERSONALIZATION & ADAPTIVITY
+• Personal mastery model: track concept proficiency over time; surface “Almost there” topics and “Recommended next steps.”
+• Knowledge map / skill tree: visualize relationships, dependencies, and progress across topics.
+• Prerequisite awareness: if a learner struggles on a concept, suggest a targeted micro-review of the prerequisite.
+• Adaptive pacing: shorter sessions with high-value items when the user is busy; deeper sessions when focused.
+• “Teach me like I’m X”: tone/style controls (beginner/advanced/visual/analogies/code-first).
+• Session planning: daily/weekly goals; flexible streak rules; gentle nudges, not guilt.
+
+CONTENT INGESTION & CREATION
+• Uploads: PDFs, PPT decks, and Markdown; extract text, sections, and headers; preserve slide structure where possible.
+• AI assist: generate outlines, learning objectives, quiz pools, and flashcards from uploaded content or pasted text.
+• Editor: friendly lesson editor with live preview, inline media, code blocks, callouts, and citation fields.
+• Safe content guardrails: detect and filter unsafe or copyrighted material; provide clear feedback and alternatives.
+
+DISCOVERY & SEARCH
+• Global search across lessons, cards, and quiz items with typo-tolerance and semantic results.
+• Smart filters: tags, time to complete, difficulty, popularity, “most improved,” “ready to review,” and “new since last visit.”
+• Quick actions: command palette to jump to lessons, start a review, or open decks.
+
+COLLABORATION & COMMUNITY (OPTIONAL BUT DESIRED)
+• Study rooms: real-time sessions with peers; presence indicators; synchronized “Start quiz together” and “Show explanation.”
+• Shared decks: creators can publish decks with descriptions and tags; viewers can clone and customize.
+• Comments and reactions on lessons and cards; moderation tools and reporting.
+• Challenges and leaderboards: weekly topic challenges with fair-play rules; opt-in only.
+
+MOTIVATION & WELLBEING
+• Streaks and badges, tuned to encourage consistency without pressure.
+• Session timer and focus modes (e.g., Pomodoro); break reminders; gentle animations on achievements.
+• Reflection prompts: “What felt hard?” “What clicked?” Feed reflections back into personalization.
+• Mood check-ins: optional; adjust difficulty and session length accordingly.
+
+ACCESSIBILITY & INCLUSIVE DESIGN
+• Fully keyboard-navigable; visible focus states; logical tab order.
+• Screen reader friendly with ARIA landmarks; announce quiz outcomes and progress in a live region.
+• Reduced motion mode; high-contrast palettes; scalable text.
+• Captioning for any audio/video; alt text prompts for images.
+
+INTERNATIONALIZATION
+• Language-agnostic lesson structure; translation-ready content; right-to-left layout support.
+• Per-user language preference and localized UI strings.
+
+ANALYTICS & INSIGHTS (PRIVACY-RESPECTFUL)
+• Personal dashboard: today’s due items, current streak, time on task, mastery by topic, and “top opportunities.”
+• Author/instructor dashboard: engagement trends, item difficulty heatmaps, common misconceptions, and content quality signals.
+• A/B content checks: quietly test two quiz phrasings to see which leads to better retention (ethical and transparent).
+
+DATA, PRIVACY, AND TRUST
+• Use Supabase as the system of record for user accounts, profiles, progress, decks, lessons, comments, and analytics events.
+• Respect user privacy with clear controls: export/delete my data, opt-out of analytics, private vs. shared decks.
+• Content moderation and report flows to keep community safe.
+• Clear audit trails on content edits and deck versions.
+
+SUPABASE EXPECTATIONS (HIGH-LEVEL)
+• Accounts: standard email/password and social logins; verified emails; profile settings; organizations/teams for shared spaces.
+• Storage: uploads (slides, images, audio) with private/public controls; serve optimized media.
+• Realtime: presence in study rooms; live cursors/highlights; instant deck and comment updates.
+• Vector/semantic: enable semantic search for lessons and flashcards.
+• Policies: protect user data; safe defaults for shared vs. private content.
+• Easy data import/export for users (CSV/TSV/Anki).
+
+POLISH & DELIGHT
+• Dark/Light themes with tasteful color systems, soft shadows, and subtle depth.
+• Micro-interactions: hover states, press states, toast confirmations, progress confetti, and friendly empty states.
+• Meaningful skeletons and optimistic UI for uploads and AI generation.
+• Command palette and keyboard shortcuts throughout (grades 1–4, next/previous, search, open palette).
+• Thoughtful copy everywhere: supportive, concise, and human.
+
+PERFORMANCE & QUALITY BAR
+• Instant app feel with snappy transitions and prefetching where appropriate.
+• Offline-first: read lessons, practice cards, and take quizzes without internet; sync when back online.
+• Robust error handling and recovery with clear messaging; never lose user work.
+• Thorough edge-case coverage (very short lessons, very long lessons, images-only slides, noisy text).
+• Demo data included so everything works out of the box before I add my own content.
+
+DEMO SCENARIOS (SHOW THESE WORKING)
+
+A new user lands, takes a 2-minute onboarding quiz, and receives a personalized study plan.
+
+They upload a short PDF; the app proposes an outline, sample questions, and a starter deck.
+
+They study: read → quiz → flashcards; the system tracks confidence and schedules the next review.
+
+They return the next day: “Due today” shows a focused set; the knowledge map recommends a prerequisite refresh.
+
+They join a study room, do a timed quiz with a friend, compare explanations, and clone a shared deck.
+
+They export a deck for Anki; import later; nothing breaks.
+
+They switch devices; progress and preferences are there.
+
+They toggle Dark/Light and use the app with keyboard only; everything is accessible and fluent.
+
+QUALITY CHECKS (OUTCOME-FOCUSED)
+• The experience feels calm, elegant, and motivating.
+• Lessons, quizzes, and flashcards are reliable, adaptive, and enjoyable.
+• Personalization is helpful but never pushy.
+• Privacy is respected; settings are clear; community spaces feel safe.
+• Everything degrades gracefully when AI is unavailable; the app still shines.
+
+FINAL NOTE
+Own the art direction and interaction design. Make it beautiful, coherent, and uplifting in both Dark and Light themes. Prioritize joy, confidence, and momentum for the learner. I’ll provide the AI API key as a secret in hosting later; just ensure all AI-related features are ready to plug in.
