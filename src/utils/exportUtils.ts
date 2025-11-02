@@ -286,17 +286,17 @@ export function exportFlashcardsAsPDF(flashcards: any[], filename: string) {
     <div style="page-break-inside: avoid; margin-bottom: 24px;">
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
         <!-- Front of card -->
-        <div style="padding: 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; min-height: 200px; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="padding: 28px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 12px; color: #ffffff; min-height: 220px; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 4px 12px rgba(30,64,175,0.3); border: 3px solid #1e3a8a;">
           <div>
-            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 8px;">CARD ${index + 1} - FRONT</div>
-            <div style="font-size: 18px; font-weight: 600; line-height: 1.5;">${card.question}</div>
+            <div style="font-size: 14px; font-weight: 700; color: #dbeafe; margin-bottom: 12px; letter-spacing: 1px;">FRONT • CARD ${index + 1}</div>
+            <div style="font-size: 19px; font-weight: 700; line-height: 1.6; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">${card.question}</div>
           </div>
         </div>
         <!-- Back of card -->
-        <div style="padding: 24px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; color: white; min-height: 200px; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="padding: 28px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 12px; color: #ffffff; min-height: 220px; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 4px 12px rgba(5,150,105,0.3); border: 3px solid #047857;">
           <div>
-            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 8px;">CARD ${index + 1} - BACK</div>
-            <div style="font-size: 16px; line-height: 1.6;">${card.answer}</div>
+            <div style="font-size: 14px; font-weight: 700; color: #d1fae5; margin-bottom: 12px; letter-spacing: 1px;">BACK • CARD ${index + 1}</div>
+            <div style="font-size: 17px; font-weight: 600; line-height: 1.7; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">${card.answer}</div>
           </div>
         </div>
       </div>

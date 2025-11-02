@@ -78,13 +78,16 @@ async function fetchVideoMetadata(videoId: string): Promise<{ title: string; des
 /**
  * Try multiple FREE transcript APIs with fallbacks
  * Each API is completely free and requires no API key
+ * ENHANCED with more APIs and better error handling
  */
 async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: string; source: string } | null> {
   const apis = [
     {
       name: 'supadata.ai',
       fetch: async () => {
-        const response = await fetch(`https://supadata.ai/youtube-transcript-api?videoId=${videoId}`);
+        const response = await fetch(`https://supadata.ai/youtube-transcript-api?videoId=${videoId}`, {
+          signal: AbortSignal.timeout(10000) // 10s timeout
+        });
         if (!response.ok) return null;
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -94,9 +97,25 @@ async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: st
       }
     },
     {
+      name: 'kome.ai (free transcript API)',
+      fetch: async () => {
+        const response = await fetch(`https://kome.ai/api/tools/youtube-transcripts?url=https://www.youtube.com/watch?v=${videoId}`, {
+          signal: AbortSignal.timeout(10000)
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (data?.transcript) {
+          return data.transcript;
+        }
+        return null;
+      }
+    },
+    {
       name: 'youtubetranscript.com',
       fetch: async () => {
-        const response = await fetch(`https://youtubetranscript.com/api/transcript?videoId=${videoId}`);
+        const response = await fetch(`https://youtubetranscript.com/api/transcript?videoId=${videoId}`, {
+          signal: AbortSignal.timeout(10000)
+        });
         if (!response.ok) return null;
         const data = await response.json();
         if (Array.isArray(data?.transcript) && data.transcript.length > 0) {
@@ -106,19 +125,49 @@ async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: st
       }
     },
     {
-      name: 'youtube-transcript-api.p.rapidapi.com (free tier)',
+      name: 'youtube-captions-scraper (CORS proxy)',
       fetch: async () => {
-        // This endpoint has a free tier without API key for some videos
-        const response = await fetch(`https://youtube-transcript3.p.rapidapi.com/api/transcript/${videoId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
+        // Use a CORS proxy to fetch captions directly
+        const response = await fetch(`https://corsproxy.io/?https://www.youtube.com/watch?v=${videoId}`, {
+          signal: AbortSignal.timeout(15000)
+        }).catch(() => null);
+        if (!response || !response.ok) return null;
+        const html = await response.text();
+        
+        // Extract caption tracks from page HTML
+        const captionMatch = html.match(/"captionTracks":\s*(\[.*?\])/);
+        if (captionMatch) {
+          const tracks = JSON.parse(captionMatch[1]);
+          if (tracks.length > 0) {
+            // Get the first available caption track URL
+            const captionUrl = tracks[0].baseUrl;
+            const captionResponse = await fetch(captionUrl, {
+              signal: AbortSignal.timeout(10000)
+            });
+            if (captionResponse.ok) {
+              const captionXml = await captionResponse.text();
+              // Parse XML to extract text
+              const textMatches = captionXml.matchAll(/<text[^>]*>([^<]+)<\/text>/g);
+              const texts = Array.from(textMatches).map(m => m[1]);
+              if (texts.length > 0) {
+                return texts.join(' ').replace(/&amp;#39;/g, "'").replace(/&amp;/g, '&');
+              }
+            }
           }
+        }
+        return null;
+      }
+    },
+    {
+      name: 'invid.io API (alternative endpoint)',
+      fetch: async () => {
+        const response = await fetch(`https://invid.io/api/youtube-transcript/${videoId}`, {
+          signal: AbortSignal.timeout(10000)
         }).catch(() => null);
         if (!response || !response.ok) return null;
         const data = await response.json();
-        if (Array.isArray(data?.transcript)) {
-          return data.transcript.map((item: any) => item.text || '').join(' ');
+        if (data?.captions && Array.isArray(data.captions)) {
+          return data.captions.map((item: any) => item.text || '').join(' ');
         }
         return null;
       }
@@ -130,15 +179,16 @@ async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: st
     try {
       console.log(`[YouTube] Trying ${api.name}...`);
       const text = await api.fetch();
-      if (text && text.length > 100) {
+      if (text && text.length > 50) { // Lowered threshold for partial transcripts
         console.log(`[YouTube] ✅ Transcript from ${api.name}! Length: ${text.length} chars`);
         return { text, source: api.name };
       }
     } catch (error) {
-      console.log(`[YouTube] ${api.name} failed, trying next...`);
+      console.log(`[YouTube] ${api.name} failed:`, error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
+  console.log('[YouTube] ⚠️ All transcript APIs failed');
   return null;
 }
 

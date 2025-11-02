@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Loader2, CheckCircle2, AlertCircle, Upload, FileText, Eye, Scan } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Upload, FileText, Eye, Scan, Copy, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { createWorker } from 'tesseract.js';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface ImageRecognitionProps {
   onImageProcessed: (imageData: { text: string; description: string; filename: string }) => void;
@@ -13,6 +15,9 @@ export function ImageRecognition({ onImageProcessed, apiKey }: ImageRecognitionP
   const [processingStatus, setProcessingStatus] = useState<'idle' | 'uploading' | 'analyzing' | 'extracting' | 'success' | 'error'>('idle');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [extractedText, setExtractedText] = useState<string>('');
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [wasEnhancedByAI, setWasEnhancedByAI] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -45,105 +50,113 @@ export function ImageRecognition({ onImageProcessed, apiKey }: ImageRecognitionP
       return;
     }
 
-    if (!apiKey) {
-      toast.error('Please configure your OpenRouter API key in Settings first');
-      return;
-    }
-
     setIsProcessing(true);
     setProcessingStatus('uploading');
 
+    let worker: any = null;
+
     try {
-      // Convert image to base64
-      const base64Image = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(selectedFile);
-      });
-
       setProcessingStatus('analyzing');
+      console.log('[OCR] Starting FREE Tesseract.js OCR processing...');
 
-      // Call OpenRouter Vision API for OCR and analysis
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'SlideTutor AI - Image Recognition'
-        },
-        body: JSON.stringify({
-          model: 'qwen/qwen2.5-vl-32b-instruct:free', // Free vision model optimized for OCR
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: `You are an advanced OCR and image analysis AI. Please analyze this image thoroughly and provide:
-
-1. **EXTRACTED TEXT** - Extract ALL visible text using OCR, including:
-   - Printed text
-   - Handwritten text
-   - Text in diagrams, charts, and tables
-   - Mathematical equations and formulas
-   - Labels and annotations
-
-2. **VISUAL ANALYSIS** - Describe:
-   - Diagrams, charts, graphs, and their data
-   - Visual relationships and structure
-   - Key visual elements and their meaning
-
-3. **EDUCATIONAL CONTENT** - Identify:
-   - Main concepts and topics
-   - Learning objectives
-   - Key information and takeaways
-
-Format your response clearly with sections for OCR text extraction and visual analysis.`
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: base64Image
-                  }
-                }
-              ]
-            }
-          ],
-          temperature: 0.3, // Lower temperature for more accurate OCR
-          max_tokens: 4000
-        })
+      // Initialize Tesseract worker (completely free, runs in browser)
+      worker = await createWorker('eng', 1, {
+        logger: (m: any) => {
+          if (m.status === 'recognizing text') {
+            console.log(`[OCR] Progress: ${(m.progress * 100).toFixed(0)}%`);
+          }
+        }
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `API error: ${response.status}`);
-      }
 
       setProcessingStatus('extracting');
 
-      const data = await response.json();
-      const extractedContent = data.choices?.[0]?.message?.content;
+      // Perform OCR on the image
+      const { data } = await worker.recognize(selectedFile);
+      
+      // Clean up the worker
+      await worker.terminate();
+      worker = null;
 
-      if (!extractedContent) {
-        throw new Error('No content extracted from image');
+      const extractedText = data.text.trim();
+
+      if (!extractedText || extractedText.length < 5) {
+        throw new Error('No text could be extracted from the image. Make sure the image contains clear, readable text.');
       }
 
-      // Parse the response to separate OCR text and description
-      const sections = extractedContent.split(/(?=\d+\.\s+\*\*[A-Z\s]+\*\*)/);
-      const analysisSection = sections.find((s: string) => s.includes('VISUAL ANALYSIS') || s.includes('ANALYSIS')) || '';
-      
+      console.log(`[OCR] ✅ Extracted ${extractedText.length} characters`);
+
+      // If API key is available, enhance with AI analysis
+      let enhancedContent = extractedText;
+      let description = 'Text extracted successfully using advanced OCR';
+
+      if (apiKey && extractedText.length > 20) {
+        try {
+          setProcessingStatus('analyzing');
+          console.log('[OCR] Enhancing with AI analysis...');
+
+          // Use AI to format and analyze the extracted text
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'HTTP-Referer': window.location.origin,
+              'X-Title': 'SlideTutor AI - OCR Enhancement'
+            },
+            body: JSON.stringify({
+              model: 'qwen/qwen-2.5-7b-instruct:free',
+              messages: [
+                {
+                  role: 'user',
+                  content: `Format and enhance this OCR-extracted text into a well-structured, beautiful document:
+
+${extractedText}
+
+Please:
+1. Fix any OCR errors or typos
+2. Format with proper markdown (headers, lists, bold)
+3. Organize into logical sections if applicable
+4. Add clarity while preserving all original information
+5. If it contains educational content, highlight key concepts
+
+Return the enhanced, beautifully formatted text.`
+                }
+              ],
+              temperature: 0.3,
+              max_tokens: 3000
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const aiEnhanced = data.choices?.[0]?.message?.content;
+            if (aiEnhanced) {
+              enhancedContent = aiEnhanced;
+              description = 'Text extracted with OCR and enhanced with AI formatting';
+              console.log('[OCR] ✅ AI enhancement complete');
+            }
+          }
+        } catch (aiError) {
+          console.log('[OCR] AI enhancement failed, using raw OCR text');
+          // Continue with raw OCR text if AI fails
+        }
+      }
+
       const processedData = {
-        text: extractedContent, // Full extracted content
-        description: analysisSection || 'Image analyzed successfully',
+        text: enhancedContent,
+        description: description,
         filename: selectedFile.name
       };
 
+      // Display the results in the UI
+      setExtractedText(enhancedContent);
+      setAiAnalysis(description);
+      setWasEnhancedByAI(apiKey && extractedText.length > 20 && enhancedContent !== extractedText);
+      
       setProcessingStatus('success');
       onImageProcessed(processedData);
       
-      toast.success('Image processed successfully! Text and content extracted.');
+      toast.success(`✨ Successfully extracted ${extractedText.length} characters from image!`);
       
       // Keep the result visible for review
       setTimeout(() => {
@@ -153,7 +166,17 @@ Format your response clearly with sections for OCR text extraction and visual an
     } catch (error: any) {
       console.error('Image processing error:', error);
       setProcessingStatus('error');
-      toast.error(error.message || 'Failed to process image. Please check your API key and try again.');
+      
+      // Clean up worker if it exists
+      if (worker) {
+        try {
+          await worker.terminate();
+        } catch (e) {
+          console.error('Error terminating worker:', e);
+        }
+      }
+
+      toast.error(error.message || 'Failed to process image. Please ensure the image contains clear, readable text.');
       setTimeout(() => {
         setProcessingStatus('idle');
         setIsProcessing(false);
@@ -166,6 +189,14 @@ Format your response clearly with sections for OCR text extraction and visual an
     setImagePreview(null);
     setProcessingStatus('idle');
     setIsProcessing(false);
+    setExtractedText('');
+    setAiAnalysis('');
+    setWasEnhancedByAI(false);
+  };
+
+  const copyExtractedText = () => {
+    navigator.clipboard.writeText(extractedText);
+    toast.success('Text copied to clipboard!');
   };
 
   return (
@@ -178,7 +209,7 @@ Format your response clearly with sections for OCR text extraction and visual an
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-1">Advanced Image Recognition & OCR</h1>
-            <p className="text-muted-foreground">Extract text and analyze diagrams from any image using AI</p>
+            <p className="text-muted-foreground">✨ FREE OCR - Extract text from any image (no API keys needed!)</p>
           </div>
         </div>
 
@@ -190,8 +221,8 @@ Format your response clearly with sections for OCR text extraction and visual an
                 <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-foreground">OCR</div>
-                <div className="text-xs text-muted-foreground">Text Extraction</div>
+                <div className="text-2xl font-bold text-foreground">FREE OCR</div>
+                <div className="text-xs text-muted-foreground">No API Keys</div>
               </div>
             </div>
           </div>
@@ -341,6 +372,70 @@ Format your response clearly with sections for OCR text extraction and visual an
           </div>
         </div>
       </div>
+
+      {/* Extracted Text Display */}
+      {extractedText && (
+        <div className="glass-card p-6 rounded-2xl border border-border/40 space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
+                <FileText className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Extracted Text & Analysis</h2>
+                {wasEnhancedByAI && (
+                  <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
+                    <Sparkles className="w-3 h-3" />
+                    <span>AI Enhanced & Formatted</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={copyExtractedText}
+              className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <Copy className="w-4 h-4" />
+              Copy Text
+            </button>
+          </div>
+
+          {/* Display extracted/enhanced text */}
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="glass-card p-6 rounded-xl border border-border/30 bg-background/50">
+              <div className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                EXTRACTED CONTENT
+              </div>
+              {wasEnhancedByAI ? (
+                <MarkdownRenderer content={extractedText} />
+              ) : (
+                <div className="whitespace-pre-wrap text-foreground font-mono text-sm leading-relaxed">
+                  {extractedText}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Character count */}
+          <div className="flex items-center gap-4 text-xs text-muted-foreground border-t border-border/30 pt-4">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-foreground">{extractedText.length}</span>
+              <span>characters extracted</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-foreground">{extractedText.split(/\s+/).length}</span>
+              <span>words</span>
+            </div>
+            {wasEnhancedByAI && (
+              <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                <Sparkles className="w-3 h-3" />
+                <span>Enhanced with AI</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

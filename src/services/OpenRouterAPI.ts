@@ -332,42 +332,86 @@ export class OpenRouterAPI {
         `- > blockquotes for important notes\n` +
         `- Lists for related items\n` +
         `- Code blocks with language tags for examples`
-      : `You are an expert educator and curriculum designer specializing in creating engaging, comprehensive lessons.\n\n` +
-        `Your task: Transform the provided content into a well-structured educational lesson that is easy to understand for everyone.\n\n` +
-        `Required Structure:\n` +
+      : `You are an expert educator and curriculum designer specializing in creating COMPREHENSIVE, DETAILED, and ENGAGING lessons.\n\n` +
+        `CRITICAL: Create an EXTENSIVE, IN-DEPTH lesson that is LONGER and MORE DETAILED than typical educational content.\n` +
+        `Each section should be THOROUGH with MULTIPLE paragraphs, EXTENSIVE examples, and DETAILED explanations.\n\n` +
+        `Required Structure (BE THOROUGH IN EVERY SECTION):\n\n` +
         `# [Clear, Descriptive Title]\n\n` +
-        `## Overview\n` +
-        `Brief introduction (2-3 sentences) explaining what you'll learn and why it matters.\n\n` +
-        `## Core Concepts\n` +
+        `## 📚 Overview\n` +
+        `Write a comprehensive introduction (5-8 sentences) that:\n` +
+        `- Explains what learners will master in this lesson\n` +
+        `- Highlights why this topic is important and relevant\n` +
+        `- Provides context and real-world significance\n` +
+        `- Sets clear learning objectives\n\n` +
+        `## 🎯 Core Concepts\n` +
         `### Fundamental Ideas\n` +
-        `Explain the main concepts in simple, clear language with real-world analogies and examples.\n` +
-        `Break down complex ideas into digestible pieces.\n\n` +
-        `### How It Works\n` +
-        `Step-by-step explanation of processes and mechanisms.\n` +
-        `Use numbered lists for sequential steps and bullet points for related items.\n\n` +
-        `### Practical Examples\n` +
-        `Provide concrete, relatable examples that demonstrate the concepts in action.\n` +
-        `Show real-world applications and use cases.\n\n` +
-        `## Key Points to Remember\n` +
-        `Highlight the most important takeaways (3-7 bullet points).\n` +
-        `Focus on what learners absolutely need to understand.\n\n` +
-        `## Common Questions & Tips\n` +
-        `Address frequent misconceptions and provide helpful tips.\n` +
-        `Offer practical advice for applying the knowledge.\n\n` +
-        `## Summary\n` +
-        `Concise recap of what was covered (3-5 bullet points).\n\n` +
-        (includeQuiz ? `## Quick Self-Check\n` +
-        `Include 3-5 simple questions to test understanding.\n` +
-        `Format each as: **Q: [Question]**\nA: [Answer]\n\n` : '') +
-        `Use markdown formatting with rich styling:\n` +
-        `- Use **bold** for emphasis on key terms\n` +
-        `- Use \`code\` for technical terms and code snippets\n` +
-        `- Use > blockquotes for important notes and warnings\n` +
-        `- Use numbered lists for sequential steps\n` +
-        `- Use bullet points for related items\n` +
+        `DETAILED explanation of main concepts (3-5 paragraphs):\n` +
+        `- Define each concept thoroughly with clear, simple language\n` +
+        `- Provide MULTIPLE real-world analogies for each concept\n` +
+        `- Include historical context or background when relevant\n` +
+        `- Break down complex ideas into digestible components\n` +
+        `- Use examples and counter-examples to clarify\n\n` +
+        `### Deep Dive: How It Works\n` +
+        `COMPREHENSIVE step-by-step explanation (4-6 paragraphs):\n` +
+        `- Detailed breakdown of processes and mechanisms\n` +
+        `- Numbered lists for sequential steps with thorough explanations\n` +
+        `- Visual descriptions (describe diagrams/charts textually)\n` +
+        `- Technical details explained in accessible language\n` +
+        `- Common pitfalls and how to avoid them\n\n` +
+        `### 💡 Practical Examples & Applications\n` +
+        `EXTENSIVE real-world examples (5-8 examples):\n` +
+        `- Multiple concrete, relatable scenarios\n` +
+        `- Industry applications and use cases\n` +
+        `- Step-by-step walkthroughs of practical applications\n` +
+        `- Before/after comparisons\n` +
+        `- Success stories and case studies\n\n` +
+        `## 🔑 Key Points to Remember\n` +
+        `Comprehensive list of takeaways (8-12 bullet points):\n` +
+        `- Each point should be detailed (2-3 sentences)\n` +
+        `- Cover all critical concepts\n` +
+        `- Include practical implications\n` +
+        `- Highlight connections between ideas\n\n` +
+        `## ❓ Common Questions & Expert Tips\n` +
+        `DETAILED FAQ section (5-8 Q&A pairs):\n` +
+        `- Address common misconceptions with thorough explanations\n` +
+        `- Provide expert tips and best practices\n` +
+        `- Include troubleshooting advice\n` +
+        `- Offer practical wisdom from experience\n` +
+        `- Answer "what if" scenarios\n\n` +
+        `## 🎓 Advanced Insights\n` +
+        `Go deeper (3-4 paragraphs):\n` +
+        `- Explore advanced aspects of the topic\n` +
+        `- Discuss future trends and developments\n` +
+        `- Provide resources for further learning\n` +
+        `- Connect to related topics and fields\n\n` +
+        `## 📋 Summary & Recap\n` +
+        `Comprehensive recap (8-10 bullet points):\n` +
+        `- Each point summarizing a major section\n` +
+        `- Reinforce key concepts with brief explanations\n` +
+        `- Tie everything together cohesively\n\n` +
+        (includeQuiz ? `## ✅ Quick Self-Check\n` +
+        `Include 5-8 thoughtful questions to test deep understanding:\n` +
+        `Format each as: **Q: [Challenging Question]**\nA: [Detailed Answer with Explanation]\n\n` : '') +
+        `FORMATTING REQUIREMENTS (Make it visually stunning):\n` +
+        `- Use **bold** extensively for emphasis on key terms and concepts\n` +
+        `- Use \`code\` for technical terms, formulas, and code snippets\n` +
+        `- Use > blockquotes for important notes, warnings, and key insights\n` +
+        `- Use numbered lists for sequential steps (with sub-steps when needed)\n` +
+        `- Use bullet points with sub-bullets for hierarchical information\n` +
         `- Use code blocks with language tags for code examples\n` +
-        `- Use tables when comparing or listing structured information\n\n` +
-        `Make it visually appealing, comprehensive yet clear, and explain everything in a way that anyone can understand.`;
+        `- Use tables for comparisons, specifications, or structured data\n` +
+        `- Use emojis sparingly for section headers to improve visual appeal\n` +
+        `- Use horizontal rules (---) to separate major sections\n` +
+        `- Format mathematical equations clearly\n\n` +
+        `CRITICAL REQUIREMENTS:\n` +
+        `✓ MAKE THIS LESSON 3-4X LONGER than a typical lesson\n` +
+        `✓ EVERY section must be DETAILED and COMPREHENSIVE\n` +
+        `✓ Include MULTIPLE examples in every section\n` +
+        `✓ Write in DEPTH - don't rush through topics\n` +
+        `✓ Make it visually appealing, professional, and engaging\n` +
+        `✓ Explain everything thoroughly so anyone can master the subject\n` +
+        `✓ Use rich markdown formatting throughout\n\n` +
+        `Remember: LONGER is BETTER. DETAIL is ESSENTIAL. Make this a COMPREHENSIVE resource that leaves no questions unanswered.`;
 
     const userPrompt = contextHint
       ? `${contextHint}\n\n${content}`
@@ -379,7 +423,7 @@ export class OpenRouterAPI {
     ];
 
     const result = await this.completionWithFallback(MODEL_ORDER.lesson, messages, {
-      maxTokens: 4096,
+      maxTokens: 8192, // Increased from 4096 for longer, more detailed lessons
       temperature: 0.4,
     });
 

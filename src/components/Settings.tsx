@@ -1,41 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Key, Download, AlertCircle, CheckCircle } from 'lucide-react';
+import React from 'react';
+import { Settings as SettingsIcon, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { Upload } from '../services/FileProcessor';
-import { useUserProfile, useUpdateUserProfile } from '../hooks/useSupabaseQuery';
-import toast from 'react-hot-toast';
 
 interface SettingsProps {
   uploads: Upload[];
 }
 
 export const Settings: React.FC<SettingsProps> = ({ uploads }) => {
-  const { data: userProfile, isLoading } = useUserProfile();
-  const updateProfileMutation = useUpdateUserProfile();
-   
-
   const envApiKey = (import.meta.env?.VITE_OPENROUTER_API_KEY ?? '').trim();
-  const [showKey, setShowKey] = useState(false);
-  const [tempKey, setTempKey] = useState(envApiKey);
-
-  useEffect(() => {
-    if (userProfile?.openrouter_api_key_encrypted) {
-      setTempKey(userProfile.openrouter_api_key_encrypted);
-      } else if (envApiKey) {
-      setTempKey(envApiKey);
-    }
-  }, [userProfile, envApiKey]);
-
-  const handleSaveKey = async () => {
-    try {
-      await updateProfileMutation.mutateAsync({
-        openrouter_api_key_encrypted: tempKey
-      });
-      toast.success('API key saved successfully!');
-    } catch (error) {
-      toast.error('Failed to save API key');
-      console.error('Error saving API key:', error);
-    }
-  };
 
   const exportAllData = () => {
     const data = {
@@ -67,13 +39,11 @@ export const Settings: React.FC<SettingsProps> = ({ uploads }) => {
     }
   };
 
-  const apiKey = (userProfile?.openrouter_api_key_encrypted ?? '').trim() || envApiKey;
-
   const diagnostics = [
-    { name: 'OpenRouter API Key', status: !!apiKey, description: 'Required for AI features' },
-    { name: 'Supabase Connected', status: !isLoading && !!userProfile, description: 'Database connection' },
+    { name: 'OpenRouter API Key', status: !!envApiKey, description: 'Required for AI features' },
     { name: 'File API', status: typeof File !== 'undefined', description: 'File upload support' },
     { name: 'Fetch API', status: typeof fetch !== 'undefined', description: 'API communication' },
+    { name: 'Local Storage', status: typeof localStorage !== 'undefined', description: 'Data persistence' },
   ];
 
   return (
@@ -81,50 +51,8 @@ export const Settings: React.FC<SettingsProps> = ({ uploads }) => {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-foreground mb-4">Settings & Configuration</h1>
         <p className="text-lg text-muted-foreground">
-          Manage your API keys, export data, and view system diagnostics.
+          Manage your data, view system diagnostics, and advanced settings.
         </p>
-      </div>
-
-      {/* API Key Configuration */}
-      <div className="glass-card rounded-xl p-6 shadow-sm border border-border/40">
-        <div className="flex items-center gap-3 mb-6">
-          <Key className="w-6 h-6 text-primary" />
-          <h2 className="text-xl font-bold text-foreground">API Configuration</h2>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              OpenRouter API Key
-            </label>
-            <div className="flex gap-3">
-              <div className="flex-1 relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={tempKey}
-                  onChange={(e) => setTempKey(e.target.value)}
-                  placeholder="sk-or-v1-..."
-                  className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                />
-                <button
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showKey ? 'Hide' : 'Show'}
-                </button>
-              </div>
-              <button
-                onClick={handleSaveKey}
-                className="px-6 py-3 bg-secondary text-white rounded-lg hover:opacity-90 transition-colors"
-              >
-                Save
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Your API key is stored securely in your profile and is required for all AI features.
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Data Management */}
