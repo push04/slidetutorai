@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   LayoutDashboard, Upload, BookOpen, Brain, Layers, 
   MessageSquare, Settings, Sparkles,
-  Clock, GraduationCap, Menu, X, Youtube
+  Clock, GraduationCap, Menu, X, Youtube, Scan
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
@@ -34,6 +34,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: 'upload', label: 'Upload', icon: Upload, gradient: 'from-purple-500 to-pink-500', description: 'Add study materials' },
       { id: 'youtube', label: 'YouTube', icon: Youtube, gradient: 'from-red-500 to-rose-500', description: 'Learn from videos' },
+      { id: 'image-recognition', label: 'Image OCR', icon: Scan, gradient: 'from-purple-600 to-indigo-600', description: 'Extract text from images' },
       { id: 'lessons', label: 'Lessons', icon: BookOpen, gradient: 'from-green-500 to-emerald-500', description: 'AI-generated lessons' },
       { id: 'quiz', label: 'Quizzes', icon: Brain, gradient: 'from-orange-500 to-red-500', description: 'Test your knowledge' },
       { id: 'flashcards', label: 'Flashcards', icon: Layers, gradient: 'from-indigo-500 to-purple-500', description: 'Practice with cards' },

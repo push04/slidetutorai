@@ -21,6 +21,8 @@ import {
   ListChecks,
   Youtube,
   BookOpen,
+  FileDown,
+  Timer,
 } from 'lucide-react';
 import type { Upload } from '../services/FileProcessor';
 import { ChunkedAIProcessor } from '../services/ChunkedAIProcessor';
@@ -28,7 +30,9 @@ import { OpenRouterAPI } from '../services/OpenRouterAPI';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ProgressIndicator } from './ProgressIndicator';
 import { fetchYouTubeData } from '../utils/youtubeUtils';
+import { exportQuizAsPDF } from '../utils/exportUtils';
 import { cn } from '../lib/utils';
+import toast from 'react-hot-toast';
 
 /* ================================================================================================
    Types
@@ -154,6 +158,9 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
   const [sourceType, setSourceType] = useState<'document' | 'youtube'>('document');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(10);
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'mixed'>('mixed');
+  const [questionType, setQuestionType] = useState<'multiple_choice' | 'true_false' | 'short_answer' | 'mixed'>('mixed');
+  const [timeLimit, setTimeLimit] = useState<number>(0); // 0 = no time limit, otherwise seconds per question
   const [generating, setGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -294,14 +301,17 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
           setGenerationProgress(25);
           setGenerationMessage(`Found: "${ytData.title}"`);
           
-          // Validate transcript length
-          if (ytData.transcript.length < 100) {
-            throw new Error('The transcript is too short to generate quiz questions. Please try a longer video.');
+          // Check if we got a real transcript or need to use AI fallback
+          if (ytData.hasTranscript && ytData.transcript.length > 100) {
+            sourceText = ytData.transcript;
+            setGenerationProgress(30);
+            setGenerationMessage(`Processing ${Math.round(ytData.transcript.length / 1000)}K characters of content...`);
+          } else {
+            // No transcript available - generate AI quiz based on video title
+            sourceText = `Create quiz questions about: "${ytData.title}"\n\nThis is a YouTube video. Since the transcript is not available, create quiz questions covering what this video likely teaches based on the title.`;
+            setGenerationProgress(30);
+            setGenerationMessage('Transcript unavailable - generating quiz from video title...');
           }
-          
-          sourceText = ytData.transcript;
-          setGenerationProgress(30);
-          setGenerationMessage(`Processing ${Math.round(ytData.transcript.length / 1000)}K characters of content...`);
         } catch (ytError: any) {
           setGenerationError(ytError.message || 'Failed to fetch YouTube data');
           setGenerating(false);
@@ -316,8 +326,33 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
         return;
       }
 
+      // Add advanced options as instructions to the AI
+      let enhancedSourceText = sourceText;
+      
+      // Add difficulty instructions
+      if (difficulty !== 'mixed') {
+        const difficultyInstructions = {
+          easy: 'Focus on basic comprehension and fundamental concepts. Questions should be straightforward and test core understanding.',
+          medium: 'Create standard difficulty questions that test both understanding and application of concepts.',
+          hard: 'Generate advanced questions requiring deep analysis, critical thinking, and synthesis of multiple concepts.'
+        }[difficulty];
+        enhancedSourceText += `\n\n[DIFFICULTY]: ${difficultyInstructions}`;
+      }
+      
+      // Add question type instructions
+      if (questionType !== 'mixed') {
+        const typeInstructions = {
+          multiple_choice: 'All questions must be multiple choice with 4 options.',
+          true_false: 'All questions must be true/false format.',
+          short_answer: 'All questions must be short answer format requiring written responses.'
+        }[questionType];
+        enhancedSourceText += `\n\n[QUESTION TYPE]: ${typeInstructions}`;
+      } else {
+        enhancedSourceText += `\n\n[QUESTION TYPE]: Mix of multiple choice, true/false, and short answer questions for variety.`;
+      }
+
       const processor = new ChunkedAIProcessor(apiKey);
-      const raw = await processor.generateChunkedQuiz(sourceText, questionCount, (progress, message) => {
+      const raw = await processor.generateChunkedQuiz(enhancedSourceText, questionCount, (progress, message) => {
         setGenerationProgress(progress || 0);
         setGenerationMessage(message || 'Processing...');
       });
@@ -359,7 +394,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
     } finally {
       setGenerating(false);
     }
-  }, [apiKey, questionCount, selectedUpload, sourceType, youtubeUrl, uploads]);
+  }, [apiKey, questionCount, difficulty, questionType, selectedUpload, sourceType, youtubeUrl, uploads]);
 
   const handleAnswer = (idx: number) => {
     if (!session || answered !== -1) return; // already answered
@@ -516,6 +551,12 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
       a.click();
       URL.revokeObjectURL(url);
     };
+    
+    const exportPDF = () => {
+      const timestamp = new Date(doneTime).toISOString().slice(0, 10);
+      exportQuizAsPDF(session.questions, `quiz-${timestamp}.pdf`);
+      toast.success('PDF export started!');
+    };
 
     return (
       <div className="space-y-8">
@@ -639,6 +680,15 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
               >
                 <Download className="w-4 h-4" />
                 Markdown
+              </button>
+              <button
+                onClick={exportPDF}
+                disabled={!session}
+                className="btn"
+                title="Export as PDF"
+              >
+                <FileDown className="w-4 h-4" />
+                PDF
               </button>
             </div>
           </div>
@@ -872,14 +922,14 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {sourceType === 'document' ? (
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+              <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-primary" />
                 Select Document
               </label>
               <select
                 value={selectedUpload}
                 onChange={(e) => setSelectedUpload(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                className="w-full px-4 py-3.5 glass-card border border-border/50 rounded-xl bg-background/50 text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 hover:border-primary/30 cursor-pointer font-medium shadow-sm hover:shadow-md appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3c%2Fpolyline%3E%3c%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10"
               >
                 <option value="">{processedUploads.length ? 'Choose a document…' : 'No documents processed'}</option>
                 {processedUploads.map((u) => (
@@ -891,7 +941,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+              <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                 <Youtube className="w-4 h-4 text-red-500" />
                 YouTube URL
               </label>
@@ -900,45 +950,110 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value)}
                 placeholder="https://youtube.com/watch?v=..."
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-colors"
+                className="w-full px-4 py-3.5 glass-card border border-border/50 rounded-xl bg-background/50 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all duration-200 hover:border-red-500/30 font-medium shadow-sm hover:shadow-md"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Number of Questions</label>
+            <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Brain className="w-4 h-4 text-secondary" />
+              Number of Questions
+            </label>
             <select
               value={questionCount}
               onChange={(e) => setQuestionCount(parseInt(e.target.value, 10))}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+              className="w-full px-4 py-3.5 glass-card border border-border/50 rounded-xl bg-background/50 text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 hover:border-primary/30 cursor-pointer font-medium shadow-sm hover:shadow-md appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3c%2Fpolyline%3E%3c%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10"
             >
-              {[3, 5, 10, 15, 20].map((n) => (
+              {[3, 5, 10, 15, 20, 25, 30].map((n) => (
                 <option key={n} value={n}>
                   {n} {n === 1 ? 'question' : 'questions'}
                 </option>
               ))}
             </select>
           </div>
+        </div>
 
-          <div className="flex items-end">
-            <button
-              onClick={generateQuiz}
-              disabled={(sourceType === 'document' ? !selectedUpload : !youtubeUrl.trim()) || generating || !apiKey}
-              className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-white font-semibold shadow-sm hover:bg-secondary/90 active:scale-[.99] disabled:bg-muted transition-all"
+        {/* Advanced Options */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Award className="w-4 h-4 text-amber-500" />
+              Difficulty Level
+            </label>
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard' | 'mixed')}
+              className="w-full px-4 py-3.5 glass-card border border-border/50 rounded-xl bg-background/50 text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 hover:border-primary/30 cursor-pointer font-medium shadow-sm hover:shadow-md appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3c%2Fpolyline%3E%3c%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10"
             >
-              {generating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Generating... {Math.round(generationProgress)}%
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-5 h-5" />
-                  Generate Quiz
-                </>
-              )}
-            </button>
+              <option value="easy">Easy - Basic comprehension</option>
+              <option value="medium">Medium - Standard questions</option>
+              <option value="hard">Hard - Advanced analysis</option>
+              <option value="mixed">Mixed - All difficulty levels</option>
+            </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <ListChecks className="w-4 h-4 text-emerald-500" />
+              Question Type
+            </label>
+            <select
+              value={questionType}
+              onChange={(e) => setQuestionType(e.target.value as 'multiple_choice' | 'true_false' | 'short_answer' | 'mixed')}
+              className="w-full px-4 py-3.5 glass-card border border-border/50 rounded-xl bg-background/50 text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 hover:border-primary/30 cursor-pointer font-medium shadow-sm hover:shadow-md appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3c%2Fpolyline%3E%3c%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10"
+            >
+              <option value="multiple_choice">Multiple Choice</option>
+              <option value="true_false">True/False</option>
+              <option value="short_answer">Short Answer</option>
+              <option value="mixed">Mixed Types</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Timer className="w-4 h-4 text-blue-500" />
+              Time Limit (per question)
+            </label>
+            <select
+              value={timeLimit}
+              onChange={(e) => setTimeLimit(parseInt(e.target.value, 10))}
+              className="w-full px-4 py-3.5 glass-card border border-border/50 rounded-xl bg-background/50 text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 hover:border-primary/30 cursor-pointer font-medium shadow-sm hover:shadow-md appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3c%2Fpolyline%3E%3c%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10"
+            >
+              <option value="0">No time limit</option>
+              <option value="30">30 seconds</option>
+              <option value="60">1 minute</option>
+              <option value="90">1.5 minutes</option>
+              <option value="120">2 minutes</option>
+              <option value="180">3 minutes</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={generateQuiz}
+            disabled={(sourceType === 'document' ? !selectedUpload : !youtubeUrl.trim()) || generating || !apiKey}
+            className={cn(
+              "px-10 py-4 rounded-xl font-bold text-white shadow-lg relative overflow-hidden group transition-all duration-300",
+              "bg-gradient-to-r from-secondary via-primary to-secondary bg-size-200 bg-pos-0",
+              "hover:shadow-2xl hover:shadow-secondary/40 hover:scale-105 hover:bg-pos-100 active:scale-95",
+              "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            )}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-shimmer"></div>
+            {generating ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+                <span className="relative z-10">Generating... {Math.round(generationProgress)}%</span>
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-5 h-5 inline mr-2" />
+                <span className="relative z-10">Generate Quiz</span>
+              </>
+            )}
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">

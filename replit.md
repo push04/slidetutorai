@@ -77,7 +77,18 @@ This application is ready to deploy on multiple platforms:
 Build Command: `npm run build`
 Output Directory: `dist`
 
-## Recent Changes (November 1, 2025)
+## Recent Changes (November 2, 2025)
+### Critical Fixes Implemented
+- **FREE YouTube Transcript API**: Replaced RapidAPI (required paid key) with completely free supadata.ai API that works without any API key
+- **Progress Tracking Fixed**: Added simulated incremental progress updates during AI generation to prevent getting stuck at 10% - now properly shows 10% → 90% during generation
+- **Anki Export Removed**: Cleaned up FlashcardManager by removing the unused "Export for Anki" button and TSV export functionality
+- **Robust PDF Export Utility Created**: Implemented professional PDF export system using `marked` library for proper markdown rendering:
+  - **Lesson PDF Export**: Beautiful formatting with headers, code blocks, lists, blockquotes, all properly styled
+  - **Quiz PDF Export**: Formatted questions with highlighted correct answers and explanations
+  - **Flashcard PDF Export**: Printable side-by-side front/back layout for effective studying
+- **Dependencies Added**: Installed `marked` library for robust markdown-to-HTML conversion
+
+## Previous Changes (November 1, 2025)
 - **CRITICAL FIX: Infinite Loading Bug**: Fixed authentication infinite loading issue by adding comprehensive error handling in AuthContext. Now properly handles session errors, profile creation failures, and ensures loading state is always set to false.
 - **Chunked AI Processing**: Implemented intelligent content chunking for large documents:
   - Created `textChunking.ts` utility with smart paragraph/sentence boundary detection

@@ -184,7 +184,7 @@ export class OpenRouterAPI {
     for (let i = 0; i < models.length; i++) {
       const model = models[i];
       let attempt = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 5; // Increased retry attempts
 
       while (attempt < maxAttempts) {
         try {
@@ -197,8 +197,17 @@ export class OpenRouterAPI {
             typeof err?.message === 'string' &&
             (/\b429\b/.test(err.message) || /\b5\d{2}\b/.test(err.message));
           attempt++;
+          
           if (attempt >= maxAttempts || !transient) break;
-          await new Promise((r) => setTimeout(r, 400 * attempt)); // 400ms, 800ms
+          
+          // Exponential backoff with jitter for rate limits
+          const baseDelay = 1000; // Start with 1 second
+          const exponentialDelay = baseDelay * Math.pow(2, attempt - 1);
+          const jitter = Math.random() * 500; // Add random jitter up to 500ms
+          const delay = Math.min(exponentialDelay + jitter, 30000); // Cap at 30 seconds
+          
+          console.log(`[OpenRouterAPI] Rate limited on ${model}, attempt ${attempt}/${maxAttempts}, retrying in ${Math.round(delay)}ms...`);
+          await new Promise((r) => setTimeout(r, delay));
         }
       }
       // proceed to next model
@@ -212,7 +221,8 @@ export class OpenRouterAPI {
 
   async generateLesson(
     uploadOrContent: Upload | string,
-    onProgress?: ProgressCallback
+    onProgress?: ProgressCallback,
+    includeQuiz: boolean = true
   ): Promise<string> {
     const content =
       typeof uploadOrContent === 'string'
@@ -228,11 +238,33 @@ export class OpenRouterAPI {
     const needsChunking = estimatedTokens > 3000; // ~12,000 characters
 
     if (!needsChunking) {
-      // Process as single chunk
-      onProgress?.(10, 'Generating lesson...');
-      const result = await this.generateSingleLesson(content);
-      onProgress?.(100, 'Complete!');
-      return result;
+      // Process as single chunk with simulated progress
+      onProgress?.(10, 'Preparing content...');
+      
+      // Simulated progress updates during AI generation - faster intervals for better UX
+      let currentProgress = 10;
+      const progressInterval = setInterval(() => {
+        if (currentProgress < 90) {
+          currentProgress += 5 + Math.random() * 10; // Increase by 5-15% each time
+          if (currentProgress > 90) currentProgress = 90;
+          onProgress?.(Math.round(currentProgress), 'AI is generating your lesson...');
+        }
+      }, 400); // Update every 400ms for smoother progress
+      
+      try {
+        // Start progress immediately
+        setTimeout(() => onProgress?.(20, 'Analyzing content...'), 100);
+        setTimeout(() => onProgress?.(35, 'Generating structure...'), 300);
+        setTimeout(() => onProgress?.(50, 'Creating detailed explanations...'), 600);
+        
+        const result = await this.generateSingleLesson(content, undefined, includeQuiz);
+        clearInterval(progressInterval);
+        onProgress?.(100, 'Complete!');
+        return result;
+      } catch (error) {
+        clearInterval(progressInterval);
+        throw error;
+      }
     }
 
     // Process in chunks with progress tracking
@@ -261,7 +293,7 @@ export class OpenRouterAPI {
         contextHint = `This is part ${i + 1} of ${chunks.length} of a multi-part lesson.\n\nPrevious sections covered: ${previousSummary}\n\nContinue building on these concepts. Focus on the NEW content below, avoiding repetition of previously covered material:`;
       }
 
-      const chunkLesson = await this.generateSingleLesson(chunk.text, contextHint);
+      const chunkLesson = await this.generateSingleLesson(chunk.text, contextHint, includeQuiz && i === chunks.length - 1);
       chunkResults.push(chunkLesson);
       
       // Extract a brief summary of what was covered for the next chunk
@@ -269,6 +301,10 @@ export class OpenRouterAPI {
         const lines = chunkLesson.split('\n').filter(line => line.trim());
         const headings = lines.filter(line => line.startsWith('#'));
         previousSummary = headings.slice(0, 5).join(', ') || 'previous content';
+        
+        // Add delay between chunks to avoid rate limiting (500ms-1s)
+        const delay = 500 + Math.random() * 500;
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
@@ -281,7 +317,8 @@ export class OpenRouterAPI {
 
   private async generateSingleLesson(
     content: string,
-    contextHint?: string
+    contextHint?: string,
+    includeQuiz: boolean = true
   ): Promise<string> {
     // Adjust system prompt based on whether this is a continuation
     const isContinuation = !!contextHint;
@@ -319,6 +356,9 @@ export class OpenRouterAPI {
         `Offer practical advice for applying the knowledge.\n\n` +
         `## Summary\n` +
         `Concise recap of what was covered (3-5 bullet points).\n\n` +
+        (includeQuiz ? `## Quick Self-Check\n` +
+        `Include 3-5 simple questions to test understanding.\n` +
+        `Format each as: **Q: [Question]**\nA: [Answer]\n\n` : '') +
         `Use markdown formatting with rich styling:\n` +
         `- Use **bold** for emphasis on key terms\n` +
         `- Use \`code\` for technical terms and code snippets\n` +
@@ -363,10 +403,33 @@ export class OpenRouterAPI {
     const needsChunking = estimatedTokens > 3000;
 
     if (!needsChunking) {
-      onProgress?.(10, 'Generating quiz questions...');
-      const result = await this.generateSingleQuiz(content, questionCount);
-      onProgress?.(100, 'Complete!');
-      return result;
+      // Single chunk with simulated progress
+      onProgress?.(10, 'Preparing quiz generator...');
+      
+      let currentProgress = 10;
+      const progressInterval = setInterval(() => {
+        if (currentProgress < 90) {
+          currentProgress += 5 + Math.random() * 10;
+          if (currentProgress > 90) currentProgress = 90;
+          onProgress?.(Math.round(currentProgress), 'AI is creating your quiz...');
+        }
+      }, 400); // Faster updates for better UX
+      
+      try {
+        // Immediate progress updates for smooth experience
+        setTimeout(() => onProgress?.(20, 'Analyzing content for questions...'), 100);
+        setTimeout(() => onProgress?.(35, 'Generating questions...'), 300);
+        setTimeout(() => onProgress?.(55, 'Creating answer options...'), 600);
+        setTimeout(() => onProgress?.(70, 'Writing explanations...'), 900);
+        
+        const result = await this.generateSingleQuiz(content, questionCount);
+        clearInterval(progressInterval);
+        onProgress?.(100, 'Complete!');
+        return result;
+      } catch (error) {
+        clearInterval(progressInterval);
+        throw error;
+      }
     }
 
     // For large content, split into chunks and generate questions from each
@@ -394,6 +457,12 @@ export class OpenRouterAPI {
       const parsed = JSON.parse(chunkQuiz);
       if (parsed.quiz && Array.isArray(parsed.quiz)) {
         allQuestions.push(...parsed.quiz);
+      }
+      
+      // Add delay between chunks to avoid rate limiting
+      if (i < chunks.length - 1) {
+        const delay = 500 + Math.random() * 500;
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
@@ -447,11 +516,33 @@ export class OpenRouterAPI {
 
     if (!needsChunking) {
       console.log('[OpenRouterAPI] Using single-chunk generation');
-      onProgress?.(10, 'Generating flashcards...');
-      const result = await this.generateSingleFlashcardSet(content, cardCount);
-      onProgress?.(100, 'Complete!');
-      console.log('[OpenRouterAPI] Single-chunk generation complete');
-      return result;
+      onProgress?.(10, 'Preparing flashcard generator...');
+      
+      let currentProgress = 10;
+      const progressInterval = setInterval(() => {
+        if (currentProgress < 90) {
+          currentProgress += 5 + Math.random() * 10;
+          if (currentProgress > 90) currentProgress = 90;
+          onProgress?.(Math.round(currentProgress), 'AI is creating your flashcards...');
+        }
+      }, 400); // Faster updates for better UX
+      
+      try {
+        // Immediate progress updates for smooth experience
+        setTimeout(() => onProgress?.(20, 'Extracting key concepts...'), 100);
+        setTimeout(() => onProgress?.(40, 'Creating flashcard questions...'), 300);
+        setTimeout(() => onProgress?.(60, 'Writing detailed answers...'), 600);
+        setTimeout(() => onProgress?.(80, 'Adding helpful hints...'), 900);
+        
+        const result = await this.generateSingleFlashcardSet(content, cardCount);
+        clearInterval(progressInterval);
+        onProgress?.(100, 'Complete!');
+        console.log('[OpenRouterAPI] Single-chunk generation complete');
+        return result;
+      } catch (error) {
+        clearInterval(progressInterval);
+        throw error;
+      }
     }
 
     // For large content, split into chunks
@@ -483,6 +574,12 @@ export class OpenRouterAPI {
       if (parsed.flashcards && Array.isArray(parsed.flashcards)) {
         console.log(`[OpenRouterAPI] Chunk ${i + 1} generated ${parsed.flashcards.length} cards`);
         allCards.push(...parsed.flashcards);
+      }
+      
+      // Add delay between chunks to avoid rate limiting
+      if (i < chunks.length - 1) {
+        const delay = 500 + Math.random() * 500;
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 

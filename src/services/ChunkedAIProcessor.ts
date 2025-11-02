@@ -19,11 +19,12 @@ export class ChunkedAIProcessor {
   async generateChunkedLesson(
     text: string,
     _difficulty: string,
-    onProgress?: ProgressCallback
+    onProgress?: ProgressCallback,
+    includeQuiz: boolean = true
   ): Promise<string> {
     // Note: difficulty param is kept for API compatibility but not used 
     // The OpenRouterAPI.generateLesson handles this internally
-    return this.api.generateLesson(text, onProgress);
+    return this.api.generateLesson(text, onProgress, includeQuiz);
   }
 
   /**

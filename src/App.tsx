@@ -24,7 +24,7 @@ import { StudyTimer } from './components/StudyTimer';
 import { VideoToLesson } from './components/VideoToLesson';
 import { ImageRecognition } from './components/ImageRecognition';
 
-export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'settings' | 'ai-tutor' | 'study-timer';
+export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'settings' | 'ai-tutor' | 'study-timer' | 'image-recognition';
 
 /**
  * The main application component.
@@ -101,21 +101,21 @@ function AppContent() {
   const viewMap: Record<TabType, React.ReactNode> = {
     dashboard: <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={setActiveTab} />,
     upload: (
-      <div className="space-y-6">
-        <UploadManager
-          uploads={uploads as Upload[]}
-          onAddUpload={handleAddUpload}
-          onDeleteUpload={handleDeleteUpload}
-        />
-        <ImageRecognition
-          onImageProcessed={() => {}}
-          apiKey={apiKey}
-        />
-      </div>
+      <UploadManager
+        uploads={uploads as Upload[]}
+        onAddUpload={handleAddUpload}
+        onDeleteUpload={handleDeleteUpload}
+      />
     ),
     youtube: (
       <VideoToLesson 
         onVideoProcessed={() => {}}
+        apiKey={apiKey}
+      />
+    ),
+    'image-recognition': (
+      <ImageRecognition
+        onImageProcessed={() => {}}
         apiKey={apiKey}
       />
     ),

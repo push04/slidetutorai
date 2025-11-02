@@ -7,6 +7,7 @@ export interface ChunkOptions {
   maxChunkSize?: number;
   overlapSize?: number;
   preserveParagraphs?: boolean;
+  adaptiveChunking?: boolean; // Automatically adjust chunk size based on content complexity
 }
 
 export interface TextChunk {
@@ -26,9 +27,10 @@ export function chunkText(
   options: ChunkOptions = {}
 ): TextChunk[] {
   const {
-    maxChunkSize = 4000, // Conservative limit for token estimation (~1000 tokens)
-    overlapSize = 200,   // Overlap to maintain context
+    maxChunkSize = 3500, // Smaller chunks for better rate limit management
+    overlapSize = 300,   // Larger overlap for better context preservation
     preserveParagraphs = true,
+    adaptiveChunking = true,
   } = options;
 
   if (!text || text.trim().length === 0) {
@@ -40,28 +42,44 @@ export function chunkText(
     return [{ text, index: 0, total: 1 }];
   }
 
+  // Adaptive chunking: analyze content density
+  let effectiveChunkSize = maxChunkSize;
+  if (adaptiveChunking) {
+    const density = analyzeContentDensity(text);
+    // For dense technical content, use smaller chunks
+    if (density > 0.7) {
+      effectiveChunkSize = Math.floor(maxChunkSize * 0.7);
+    }
+  }
+
   const chunks: TextChunk[] = [];
   let startIndex = 0;
 
   while (startIndex < text.length) {
-    let endIndex = startIndex + maxChunkSize;
+    let endIndex = startIndex + effectiveChunkSize;
 
     // If this is not the last chunk, try to find a good break point
     if (endIndex < text.length && preserveParagraphs) {
-      // Try to break at paragraph boundary
+      // Try to break at paragraph boundary (double newline)
       const paragraphBreak = text.lastIndexOf('\n\n', endIndex);
-      if (paragraphBreak > startIndex) {
+      if (paragraphBreak > startIndex + effectiveChunkSize * 0.5) {
         endIndex = paragraphBreak + 2;
       } else {
-        // Try to break at sentence boundary
-        const sentenceBreak = text.lastIndexOf('. ', endIndex);
-        if (sentenceBreak > startIndex) {
-          endIndex = sentenceBreak + 2;
+        // Try to break at single newline
+        const lineBreak = text.lastIndexOf('\n', endIndex);
+        if (lineBreak > startIndex + effectiveChunkSize * 0.5) {
+          endIndex = lineBreak + 1;
         } else {
-          // Try to break at word boundary
-          const wordBreak = text.lastIndexOf(' ', endIndex);
-          if (wordBreak > startIndex) {
-            endIndex = wordBreak + 1;
+          // Try to break at sentence boundary
+          const sentenceBreak = findSentenceBoundary(text, endIndex, startIndex);
+          if (sentenceBreak > startIndex) {
+            endIndex = sentenceBreak;
+          } else {
+            // Try to break at word boundary
+            const wordBreak = text.lastIndexOf(' ', endIndex);
+            if (wordBreak > startIndex + effectiveChunkSize * 0.5) {
+              endIndex = wordBreak + 1;
+            }
           }
         }
       }
@@ -86,6 +104,55 @@ export function chunkText(
   chunks.forEach(chunk => chunk.total = totalChunks);
 
   return chunks;
+}
+
+/**
+ * Find a good sentence boundary near the target index
+ */
+function findSentenceBoundary(text: string, targetIndex: number, minIndex: number): number {
+  const sentenceEnders = ['. ', '! ', '? ', '.\n', '!\n', '?\n'];
+  let bestMatch = -1;
+  let bestDistance = Infinity;
+
+  for (const ender of sentenceEnders) {
+    const index = text.lastIndexOf(ender, targetIndex);
+    if (index > minIndex) {
+      const distance = Math.abs(targetIndex - index);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestMatch = index + ender.length;
+      }
+    }
+  }
+
+  return bestMatch;
+}
+
+/**
+ * Analyze content density (ratio of technical terms, numbers, special chars)
+ * Higher density = more technical/dense content
+ */
+function analyzeContentDensity(text: string): number {
+  const sample = text.substring(0, Math.min(2000, text.length));
+  const words = sample.split(/\s+/);
+  const technicalIndicators = [
+    /\d+/, // numbers
+    /[A-Z]{2,}/, // acronyms
+    /[_\-\.]{2,}/, // technical separators
+    /\([^)]+\)/, // parenthetical expressions
+    /\[[^\]]+\]/, // brackets
+    /\{[^}]+\}/, // braces
+    /```/, // code blocks
+  ];
+
+  let technicalCount = 0;
+  for (const word of words) {
+    if (technicalIndicators.some(pattern => pattern.test(word))) {
+      technicalCount++;
+    }
+  }
+
+  return words.length > 0 ? technicalCount / words.length : 0;
 }
 
 /**

@@ -1,11 +1,12 @@
 import React, { useReducer, useMemo, useEffect, memo, useState } from 'react';
-import { CreditCard, Wand2, Download, Play, RotateCcw, CheckCircle, BookOpen, Youtube } from 'lucide-react';
+import { CreditCard, Wand2, Download, Play, RotateCcw, CheckCircle, BookOpen, Youtube, FileDown } from 'lucide-react';
 import { Upload } from '../services/FileProcessor';
 import { ChunkedAIProcessor } from '../services/ChunkedAIProcessor';
 import { useFlashcards, updateCardWithSM2 } from '../contexts/FlashcardContext';
 import { extractJSONFromResponse } from '../services/lessonParser';
 import { ProgressIndicator } from './ProgressIndicator';
 import { fetchYouTubeData } from '../utils/youtubeUtils';
+import { exportFlashcardsAsPDF } from '../utils/exportUtils';
 import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -68,12 +69,21 @@ interface DashboardProps {
   dispatch: React.Dispatch<Action>;
   onGenerate: () => void;
   onStartStudy: () => void;
-  onExport: () => void;
 }
 
-const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStartStudy, onExport }: DashboardProps) => {
+const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStartStudy }: DashboardProps) => {
   const { state: { dueCards, cards } } = useFlashcards();
   const processedUploads = useMemo(() => uploads.filter(u => u.processed), [uploads]);
+  
+  const handleExportPDF = () => {
+    if (cards.length === 0) {
+      toast.error('No flashcards to export');
+      return;
+    }
+    const timestamp = new Date().toISOString().slice(0, 10);
+    exportFlashcardsAsPDF(cards, `flashcards-${timestamp}.pdf`);
+    toast.success('PDF export started!');
+  };
 
   return (
     <div className="space-y-8">
@@ -196,9 +206,9 @@ const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStart
             <Play className="w-5 h-5" />
             Study ({dueCards.length} due)
           </button>
-          <button onClick={onExport} disabled={!state.selectedUploadId || cards.filter(c => c.uploadId === state.selectedUploadId).length === 0} className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:shadow-xl hover:shadow-purple-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
-            <Download className="w-5 h-5" />
-            Export for Anki
+          <button onClick={handleExportPDF} disabled={cards.length === 0} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:shadow-xl hover:shadow-blue-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
+            <FileDown className="w-5 h-5" />
+            Export PDF
           </button>
         </div>
       </div>
@@ -342,13 +352,15 @@ export const FlashcardManager: React.FC<FlashcardManagerProps> = ({ uploads, api
           dispatch({ type: 'UPDATE_PROGRESS', progress: 25, message: `Found: "${ytData.title}"` });
           toast.success(`Found: "${ytData.title}"`);
           
-          // Validate transcript length
-          if (ytData.transcript.length < 100) {
-            throw new Error('The transcript is too short to generate flashcards. Please try a longer video.');
+          // Check if we got a real transcript or need to use AI fallback
+          if (ytData.hasTranscript && ytData.transcript.length > 100) {
+            sourceText = ytData.transcript;
+            dispatch({ type: 'UPDATE_PROGRESS', progress: 30, message: `Processing ${Math.round(ytData.transcript.length / 1000)}K characters of content...` });
+          } else {
+            // No transcript available - generate AI flashcards based on video title
+            sourceText = `Create flashcards about: "${ytData.title}"\n\nThis is a YouTube video. Since the transcript is not available, create flashcards covering what this video likely teaches based on the title.`;
+            dispatch({ type: 'UPDATE_PROGRESS', progress: 30, message: 'Transcript unavailable - generating flashcards from video title...' });
           }
-          
-          sourceText = ytData.transcript;
-          dispatch({ type: 'UPDATE_PROGRESS', progress: 30, message: `Processing ${Math.round(ytData.transcript.length / 1000)}K characters of content...` });
         } catch (ytError: any) {
           const errorMsg = ytError.message || 'Failed to fetch YouTube data';
           dispatch({ type: 'GENERATION_COMPLETE', error: errorMsg });
@@ -418,22 +430,6 @@ export const FlashcardManager: React.FC<FlashcardManagerProps> = ({ uploads, api
       flashcardDispatch({ type: 'UPDATE_CARD', payload: { cardId, updates } });
     }
   };
-  
-  const handleExport = () => {
-    const cardsToExport = flashcardState.cards.filter(c => c.uploadId === state.selectedUploadId);
-    if (cardsToExport.length === 0) {
-      alert('No flashcards to export for the selected document.');
-      return;
-    }
-    const tsvContent = cardsToExport.map(c => `${c.question}\t${c.answer}`).join('\n');
-    const blob = new Blob([tsvContent], { type: 'text/tab-separated-values' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${selectedUpload?.filename.replace(/\.[^/.]+$/, "")}-flashcards.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
 
   if (state.isStudyMode) {
     return <StudySession 
@@ -455,7 +451,6 @@ export const FlashcardManager: React.FC<FlashcardManagerProps> = ({ uploads, api
           dispatch={dispatch}
           onGenerate={handleGenerate}
           onStartStudy={() => dispatch({ type: 'SET_FIELD', field: 'isStudyMode', payload: true })}
-          onExport={handleExport}
         />
     </div>
   );

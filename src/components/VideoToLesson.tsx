@@ -96,22 +96,22 @@ export function VideoToLesson({ onVideoProcessed, apiKey }: VideoToLessonProps) 
       
       setProcessingStatus('transcribing');
       
-      // Try to get real captions using YouTube Transcript API
+      // Try to get real captions using FREE YouTube Transcript API (no API key required)
       let transcriptText = '';
+      
       try {
+        console.log('[YouTube] Fetching transcript from free API...');
+        
+        // Use free supadata.ai API - no API key required!
         const transcriptResponse = await fetch(
-          `https://youtube-transcript-api.p.rapidapi.com/transcript?video_id=${videoId}`,
-          {
-            headers: {
-              'X-RapidAPI-Key': 'demo', // Using demo key - in production, users would need their own
-            }
-          }
+          `https://supadata.ai/youtube-transcript-api?videoId=${videoId}`
         ).catch(() => null);
 
         if (transcriptResponse && transcriptResponse.ok) {
           const transcriptData = await transcriptResponse.json();
           if (Array.isArray(transcriptData) && transcriptData.length > 0) {
-            transcriptText = transcriptData.map((item: any) => item.text).join(' ');
+            transcriptText = transcriptData.map((item: any) => item.text || '').join(' ');
+            console.log('[YouTube] ✅ Transcript fetched! Length:', transcriptText.length);
           }
         }
       } catch (transcriptError) {
