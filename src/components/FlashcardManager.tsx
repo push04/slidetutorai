@@ -93,14 +93,14 @@ const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStart
             <CreditCard className="w-7 h-7 text-white" />
           </div>
           <h3 className="text-3xl font-bold text-foreground mb-1">{cards.length}</h3>
-          <p className="text-muted-foreground font-medium">Total Cards</p>
+          <p className="text-muted-foreground font-medium">Cards Created</p>
         </div>
         <div className="glass-card border border-border/40 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/30 group-hover:shadow-xl group-hover:shadow-emerald-500/40 transition-all duration-300">
             <RotateCcw className="w-7 h-7 text-white" />
           </div>
           <h3 className="text-3xl font-bold text-foreground mb-1">{dueCards.length}</h3>
-          <p className="text-muted-foreground font-medium">Due for Review</p>
+          <p className="text-muted-foreground font-medium">Ready to Review</p>
         </div>
         <div className="glass-card border border-border/40 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-purple-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300">
@@ -112,8 +112,8 @@ const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStart
       </div>
       <div className="glass-card border border-border/40 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300">
         <div className="mb-6">
-          <h3 className="text-xl font-bold text-foreground mb-2">Generate Flashcards</h3>
-          <p className="text-muted-foreground text-sm">Create smart flashcards with spaced repetition</p>
+          <h3 className="text-xl font-bold text-foreground mb-2">Generate Smart Flashcards</h3>
+          <p className="text-muted-foreground text-sm">AI creates cards that match your learning style and pace</p>
         </div>
         
         {/* Source Type Toggle */}
@@ -123,7 +123,7 @@ const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStart
             className={cn(
               "flex-1 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2",
               state.sourceType === 'document'
-                ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30"
+                ? "bg-gradient-to-r from-indigo-700 to-purple-700 dark:from-indigo-600 dark:to-purple-600 text-white shadow-lg shadow-primary/30"
                 : "glass-card border border-border/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
             )}
           >
@@ -135,7 +135,7 @@ const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStart
             className={cn(
               "flex-1 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2",
               state.sourceType === 'youtube'
-                ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30"
+                ? "bg-gradient-to-r from-red-700 to-pink-700 dark:from-red-600 dark:to-pink-600 text-white shadow-lg shadow-red-500/30"
                 : "glass-card border border-border/50 text-muted-foreground hover:border-red-500/50 hover:text-foreground"
             )}
           >
@@ -198,15 +198,15 @@ const FlashcardDashboard = memo(({ uploads, state, dispatch, onGenerate, onStart
         )}
         
         <div className="flex flex-wrap gap-4">
-          <button onClick={onGenerate} disabled={(state.sourceType === 'document' ? !state.selectedUploadId : !state.youtubeUrl.trim()) || state.isGenerating} className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
+          <button onClick={onGenerate} disabled={(state.sourceType === 'document' ? !state.selectedUploadId : !state.youtubeUrl.trim()) || state.isGenerating} className="px-8 py-4 bg-gradient-to-r from-indigo-700 to-purple-700 dark:from-indigo-600 dark:to-purple-600 hover:from-indigo-800 hover:to-purple-800 dark:hover:from-indigo-500 dark:hover:to-purple-500 text-white rounded-xl hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
             <Wand2 className="w-5 h-5" />
-            {state.isGenerating ? `Generating... ${Math.round(state.generationProgress)}%` : 'Generate Cards'}
+            {state.isGenerating ? `Creating... ${Math.round(state.generationProgress)}%` : 'Generate Cards'}
           </button>
-          <button onClick={onStartStudy} disabled={dueCards.length === 0} className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
+          <button onClick={onStartStudy} disabled={dueCards.length === 0} className="px-8 py-4 bg-gradient-to-r from-emerald-700 to-green-700 dark:from-emerald-600 dark:to-green-600 hover:from-emerald-800 hover:to-green-800 dark:hover:from-emerald-500 dark:hover:to-green-500 text-white rounded-xl hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
             <Play className="w-5 h-5" />
-            Study ({dueCards.length} due)
+            Start Studying ({dueCards.length} due)
           </button>
-          <button onClick={handleExportPDF} disabled={cards.length === 0} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:shadow-xl hover:shadow-blue-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
+          <button onClick={handleExportPDF} disabled={cards.length === 0} className="px-8 py-4 bg-gradient-to-r from-blue-700 to-cyan-700 dark:from-blue-600 dark:to-cyan-600 hover:from-blue-800 hover:to-cyan-800 dark:hover:from-blue-500 dark:hover:to-cyan-500 text-white rounded-xl hover:shadow-xl hover:shadow-blue-500/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2.5 font-semibold shadow-lg">
             <FileDown className="w-5 h-5" />
             Export PDF
           </button>
@@ -232,8 +232,8 @@ const StudySession = memo(({ onReview, onEndSession }: { onReview: (id: string, 
   if (!currentCard) {
     return (
       <div className="text-center p-8">
-        <h2 className="text-2xl font-bold">Session Complete!</h2>
-        <button onClick={onEndSession} className="mt-4 px-6 py-3 bg-secondary text-white rounded-lg">Return to Dashboard</button>
+        <h2 className="text-2xl font-bold">Session Complete - Great Job!</h2>
+        <button onClick={onEndSession} className="mt-4 px-6 py-3 bg-secondary text-white rounded-lg">Back to Learning Hub</button>
       </div>
     );
   }
@@ -251,8 +251,8 @@ const StudySession = memo(({ onReview, onEndSession }: { onReview: (id: string, 
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-foreground">Study Session</h1>
-        <p className="text-lg text-muted-foreground">Card {currentIndex + 1} of {dueCards.length}</p>
+        <h1 className="text-3xl font-bold text-foreground">Study Session in Progress</h1>
+        <p className="text-lg text-muted-foreground">Card {currentIndex + 1} of {dueCards.length} - You've got this!</p>
         <div className="w-full bg-muted rounded-full h-2 mt-2">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-300" style={{ width: `${((currentIndex + 1) / dueCards.length) * 100}%` }} />
         </div>
@@ -262,7 +262,7 @@ const StudySession = memo(({ onReview, onEndSession }: { onReview: (id: string, 
           <p className="text-xl text-foreground font-medium">{currentCard.question}</p>
         </div>
         {!showAnswer ? (
-          <button onClick={() => setShowAnswer(true)} className="w-full px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all duration-300 text-lg font-semibold shadow-lg">
+          <button onClick={() => setShowAnswer(true)} className="w-full px-8 py-4 bg-gradient-to-r from-indigo-700 to-purple-700 dark:from-indigo-600 dark:to-purple-600 hover:from-indigo-800 hover:to-purple-800 dark:hover:from-indigo-500 dark:hover:to-purple-500 text-white rounded-xl hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all duration-300 text-lg font-semibold shadow-lg">
             Show Answer
           </button>
         ) : (
@@ -441,8 +441,8 @@ export const FlashcardManager: React.FC<FlashcardManagerProps> = ({ uploads, api
   return (
     <div className="space-y-8">
         <div className="text-center">
-            <h1 className="text-3xl font-bold text-foreground">Flashcard Management</h1>
-            <p className="text-lg text-muted-foreground">Generate, study, and manage flashcards with spaced repetition.</p>
+            <h1 className="text-3xl font-bold text-foreground">Master Anything with Smart Flashcards</h1>
+            <p className="text-lg text-muted-foreground">Learn faster with AI-powered cards that adapt to your memory. Science-backed results!</p>
         </div>
         {state.error && <div className="text-center text-sm text-rose-600 bg-rose-50 p-3 rounded-lg">{state.error}</div>}
         <FlashcardDashboard

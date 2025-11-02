@@ -49,21 +49,21 @@ export const Settings: React.FC<SettingsProps> = ({ uploads }) => {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-foreground mb-4">Settings & Configuration</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-4">Control Your Learning Experience</h1>
         <p className="text-lg text-muted-foreground">
-          Manage your data, view system diagnostics, and advanced settings.
+          Manage your data, check system health, and customize your study environment.
         </p>
       </div>
 
       {/* Data Management */}
       <div className="glass-card rounded-xl p-6 shadow-sm border border-border/40">
-        <h2 className="text-xl font-bold text-foreground mb-6">Data Management</h2>
+        <h2 className="text-xl font-bold text-foreground mb-6">Your Data, Your Control</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="font-semibold text-foreground mb-3">Export Data</h3>
+            <h3 className="font-semibold text-foreground mb-3">Backup Your Progress</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Export all your uploads, flashcards, and settings as a JSON file.
+              Save all your study materials and progress securely.
             </p>
             <button
               onClick={exportAllData}
@@ -75,9 +75,9 @@ export const Settings: React.FC<SettingsProps> = ({ uploads }) => {
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground mb-3">Clear All Data</h3>
+            <h3 className="font-semibold text-foreground mb-3">Fresh Start</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Remove all uploads, flashcards, and settings from your browser.
+              Clear everything and begin with a clean slate.
             </p>
             <button
               onClick={clearAllData}
@@ -93,7 +93,7 @@ export const Settings: React.FC<SettingsProps> = ({ uploads }) => {
       <div className="glass-card rounded-xl p-6 shadow-sm border border-border/40">
         <div className="flex items-center gap-3 mb-6">
           <SettingsIcon className="w-6 h-6 text-muted-foreground" />
-          <h2 className="text-xl font-bold text-foreground">System Diagnostics</h2>
+          <h2 className="text-xl font-bold text-foreground">System Health Check</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -150,7 +150,7 @@ export const Settings: React.FC<SettingsProps> = ({ uploads }) => {
 
       {/* Usage Tips */}
       <div className="glass-card rounded-xl p-6 shadow-sm border border-border/40">
-        <h2 className="text-xl font-bold text-foreground mb-4">Usage Tips</h2>
+        <h2 className="text-xl font-bold text-foreground mb-4">Pro Tips for Success</h2>
         <div className="space-y-3 text-foreground">
           <div className="flex gap-3">
             <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold">1</span>

@@ -19,8 +19,8 @@ export function SocraticTutor({ topic, apiKey }: SocraticTutorProps) {
     {
       role: 'assistant',
       content: topic
-        ? `I'm here to help you understand ${topic}. Rather than giving you direct answers, I'll guide you to discover the solution yourself through questions. This helps you learn more deeply. What would you like to explore?`
-        : "Hello! I'm your Socratic tutor. I'll help you learn by asking questions that guide you to discover answers yourself. What topic would you like to explore?",
+        ? `Ready to master ${topic}? Instead of just telling you the answer, I'll guide you to discover it yourself - that's how real learning happens! What would you like to explore first?`
+        : "Hey there! I'm your AI learning coach. I won't just give you answers - I'll help you think through problems and discover solutions yourself. That's the secret to actually remembering stuff! What topic are you curious about?",
       type: 'guidance'
     }
   ]);
@@ -179,8 +179,8 @@ Focus on building competence and confidence.`
               <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-foreground">Socratic AI Tutor</h3>
-              <p className="text-xs text-muted-foreground">Learn through guided questioning</p>
+              <h3 className="text-lg font-semibold text-foreground">Your AI Learning Coach</h3>
+              <p className="text-xs text-muted-foreground">Think deeper, learn better with smart questions</p>
             </div>
           </div>
         </div>
@@ -253,10 +253,10 @@ Focus on building competence and confidence.`
               </div>
               {message.type && message.role === 'assistant' && (
                 <p className="text-xs text-muted-foreground mt-1 px-2">
-                  {message.type === 'question' && '💭 Thought-provoking question'}
-                  {message.type === 'hint' && '💡 Helpful hint'}
-                  {message.type === 'guidance' && '🧭 Guidance'}
-                  {message.type === 'answer' && '📚 Explanation'}
+                  {message.type === 'question' && 'Thought-provoking question'}
+                  {message.type === 'hint' && 'Helpful hint'}
+                  {message.type === 'guidance' && 'Guidance'}
+                  {message.type === 'answer' && 'Explanation'}
                 </p>
               )}
             </div>

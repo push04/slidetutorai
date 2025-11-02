@@ -7,9 +7,12 @@ import {
   CreditCard, 
   BarChart3, 
   Settings,
-  GraduationCap
+  GraduationCap,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { TabType } from '../App';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -17,13 +20,15 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
+  const { theme, toggleTheme } = useTheme();
+  
   const tabs = [
-    { id: 'dashboard' as const, label: 'Dashboard', icon: BarChart3 },
+    { id: 'dashboard' as const, label: 'Hub', icon: BarChart3 },
     { id: 'upload' as const, label: 'Upload', icon: Upload },
     { id: 'lessons' as const, label: 'Lessons', icon: BookOpen },
     { id: 'quiz' as const, label: 'Quizzes', icon: Brain },
-    { id: 'flashcards' as const, label: 'Flashcards', icon: CreditCard },
-    { id: 'chat' as const, label: 'Chat Q&A', icon: MessageSquare },
+    { id: 'flashcards' as const, label: 'Cards', icon: CreditCard },
+    { id: 'chat' as const, label: 'Chat', icon: MessageSquare },
     { id: 'settings' as const, label: 'Settings', icon: Settings },
   ];
 
@@ -37,7 +42,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">SlideTutor AI</h1>
-              <p className="text-sm text-muted-foreground hidden sm:block">Professional Learning Platform</p>
+              <p className="text-sm text-muted-foreground hidden sm:block">Your Study Superpower</p>
             </div>
           </div>
           
@@ -61,6 +66,19 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 </button>
               );
             })}
+            
+            <button
+              onClick={toggleTheme}
+              className="ml-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted group"
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 transition-transform group-hover:rotate-12" />
+              ) : (
+                <Moon className="w-4 h-4 transition-transform group-hover:-rotate-12" />
+              )}
+              <span className="hidden md:block">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
           </div>
         </div>
       </div>

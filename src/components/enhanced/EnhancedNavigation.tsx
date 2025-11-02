@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { 
   LayoutDashboard, Upload, BookOpen, Brain, Layers, 
   MessageSquare, Settings, Sparkles,
-  Clock, GraduationCap, Menu, X, Youtube, Scan
+  Clock, GraduationCap, Menu, X, Youtube, Scan,
+  Sun, Moon
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../contexts/ThemeContext';
 import { cn } from '../../lib/utils';
 import { GlobalSearch } from '../GlobalSearch';
 import type { TabType } from '../../App';
@@ -26,31 +28,31 @@ const navGroups: NavGroup[] = [
   {
     label: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, gradient: 'from-secondary/80 to-secondary', description: 'Your learning overview' },
+      { id: 'dashboard', label: 'Learning Hub', icon: LayoutDashboard, gradient: 'from-secondary/80 to-secondary', description: 'Your progress at a glance' },
     ]
   },
   {
-    label: 'Learning',
+    label: 'Study Tools',
     items: [
       { id: 'upload', label: 'Upload', icon: Upload, gradient: 'from-purple-500 to-pink-500', description: 'Add study materials' },
       { id: 'youtube', label: 'YouTube', icon: Youtube, gradient: 'from-red-500 to-rose-500', description: 'Learn from videos' },
-      { id: 'image-recognition', label: 'Image OCR', icon: Scan, gradient: 'from-purple-600 to-indigo-600', description: 'Extract text from images' },
-      { id: 'lessons', label: 'Lessons', icon: BookOpen, gradient: 'from-green-500 to-emerald-500', description: 'AI-generated lessons' },
-      { id: 'quiz', label: 'Quizzes', icon: Brain, gradient: 'from-orange-500 to-red-500', description: 'Test your knowledge' },
-      { id: 'flashcards', label: 'Flashcards', icon: Layers, gradient: 'from-indigo-500 to-purple-500', description: 'Practice with cards' },
+      { id: 'image-recognition', label: 'Image OCR', icon: Scan, gradient: 'from-purple-600 to-indigo-600', description: 'Extract text instantly' },
+      { id: 'lessons', label: 'Smart Lessons', icon: BookOpen, gradient: 'from-green-500 to-emerald-500', description: 'AI creates your lessons' },
+      { id: 'quiz', label: 'Challenge Mode', icon: Brain, gradient: 'from-orange-500 to-red-500', description: 'Test your mastery' },
+      { id: 'flashcards', label: 'Smart Cards', icon: Layers, gradient: 'from-indigo-500 to-purple-500', description: 'Learn faster, remember longer' },
     ]
   },
   {
-    label: 'AI Assistant',
+    label: 'AI Support',
     items: [
-      { id: 'chat', label: 'Chat Q&A', icon: MessageSquare, gradient: 'from-pink-500 to-rose-500', description: 'Ask anything' },
-      { id: 'ai-tutor', label: 'AI Tutor', icon: Sparkles, gradient: 'from-purple-500 to-blue-500', description: 'Personalized tutoring' },
+      { id: 'chat', label: 'Study Buddy', icon: MessageSquare, gradient: 'from-pink-500 to-rose-500', description: 'Instant answers' },
+      { id: 'ai-tutor', label: 'AI Coach', icon: Sparkles, gradient: 'from-purple-500 to-blue-500', description: 'Think deeper, learn better' },
     ]
   },
   {
-    label: 'Tools',
+    label: 'Productivity',
     items: [
-      { id: 'study-timer', label: 'Study Timer', icon: Clock, gradient: 'from-secondary/80 to-accent', description: 'Time tracking' },
+      { id: 'study-timer', label: 'Study Timer', icon: Clock, gradient: 'from-secondary/80 to-accent', description: 'Track your focus time' },
     ]
   },
 ];
@@ -91,7 +93,7 @@ function Sidebar({ isOpen, onClose, activeTab, onTabChange }: {
             </div>
             <div>
               <h2 className="font-bold text-foreground text-base tracking-tight">SlideTutor AI</h2>
-              <p className="text-xs text-muted-foreground font-medium">Learn Smarter</p>
+              <p className="text-xs text-muted-foreground font-medium">Study Smarter</p>
             </div>
           </div>
           <button
@@ -247,6 +249,7 @@ interface EnhancedNavigationProps {
 
 export function EnhancedNavigation({ activeTab, onTabChange }: EnhancedNavigationProps) {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -285,9 +288,19 @@ export function EnhancedNavigation({ activeTab, onTabChange }: EnhancedNavigatio
               <GlobalSearch onNavigate={onTabChange} />
             </div>
 
-            {/* Right: Profile */}
+            {/* Right: Theme Toggle */}
             <div className="flex items-center gap-2">
-              {/* Profile removed - using local storage only */}
+              <button
+                onClick={toggleTheme}
+                className="p-2.5 hover:bg-muted/60 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 group"
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-all group-hover:rotate-12" />
+                ) : (
+                  <Moon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-all group-hover:-rotate-12" />
+                )}
+              </button>
             </div>
           </div>
         </div>

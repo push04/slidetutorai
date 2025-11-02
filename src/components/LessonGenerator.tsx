@@ -147,9 +147,9 @@ const LessonControls = memo(({ uploads, state, apiKey, onGenerate, dispatch }: a
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30">
           <BookOpen className="w-6 h-6 text-white" />
         </div>
-        Create AI Lesson
+        Build Your Perfect Lesson
       </h2>
-      <p className="text-muted-foreground text-sm">Transform documents or YouTube videos into comprehensive learning materials</p>
+      <p className="text-muted-foreground text-sm">Turn any content into a personalized learning experience that matches your level</p>
     </div>
 
     {/* Source Type Toggle */}
@@ -159,7 +159,7 @@ const LessonControls = memo(({ uploads, state, apiKey, onGenerate, dispatch }: a
         className={cn(
           "flex-1 px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all",
           state.sourceType === 'document'
-            ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg"
+            ? "bg-gradient-to-r from-indigo-700 to-purple-700 dark:from-indigo-600 dark:to-purple-600 text-white shadow-lg"
             : "glass-card border border-border/50 text-muted-foreground hover:border-primary/30"
         )}
       >
@@ -171,7 +171,7 @@ const LessonControls = memo(({ uploads, state, apiKey, onGenerate, dispatch }: a
         className={cn(
           "flex-1 px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all",
           state.sourceType === 'youtube'
-            ? "bg-gradient-to-r from-red-600 to-red-500 text-white shadow-lg"
+            ? "bg-gradient-to-r from-red-700 to-pink-700 dark:from-red-600 dark:to-pink-600 text-white shadow-lg"
             : "glass-card border border-border/50 text-muted-foreground hover:border-red-500/30"
         )}
       >
@@ -257,14 +257,14 @@ const LessonControls = memo(({ uploads, state, apiKey, onGenerate, dispatch }: a
         </div>
         <div>
           <p className="font-semibold text-foreground">Include Practice Quiz</p>
-          <p className="text-xs text-muted-foreground">Add a short quiz at the end for self-assessment</p>
+          <p className="text-xs text-muted-foreground">Test your knowledge with instant feedback</p>
         </div>
       </div>
       <button
         onClick={() => dispatch({ type: 'TOGGLE_INCLUDE_QUIZ' })}
         className={cn(
           "relative inline-flex h-7 w-14 items-center rounded-full transition-colors",
-          state.includeQuiz ? "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30" : "bg-muted"
+          state.includeQuiz ? "bg-gradient-to-r from-emerald-700 to-teal-700 dark:from-emerald-600 dark:to-teal-600 shadow-lg shadow-emerald-500/30" : "bg-muted"
         )}
       >
         <span
@@ -282,8 +282,8 @@ const LessonControls = memo(({ uploads, state, apiKey, onGenerate, dispatch }: a
         disabled={(state.sourceType === 'document' ? !state.selectedUploadId : !state.youtubeUrl.trim()) || state.isGenerating || !apiKey} 
         className={cn(
           "px-10 py-4 rounded-xl font-bold flex items-center gap-3 transition-all duration-300 shadow-lg relative overflow-hidden group",
-          "bg-gradient-to-r from-primary via-secondary to-primary bg-size-200 text-white",
-          "hover:shadow-2xl hover:shadow-primary/40 hover:scale-105 active:scale-95 hover:bg-pos-100",
+          "bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 text-white",
+          "hover:shadow-2xl hover:shadow-primary/40 hover:scale-105 hover:from-indigo-800 hover:via-purple-800 hover:to-pink-800 dark:hover:from-indigo-500 dark:hover:via-purple-500 dark:hover:to-pink-500 active:scale-95",
           "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         )}
       >
@@ -293,7 +293,7 @@ const LessonControls = memo(({ uploads, state, apiKey, onGenerate, dispatch }: a
         ) : (
           <Wand2 className="w-5 h-5" />
         )}
-        <span className="relative z-10">{state.isGenerating ? 'Generating Lesson...' : 'Generate Lesson'}</span>
+        <span className="relative z-10">{state.isGenerating ? 'Creating Your Lesson...' : 'Generate Lesson Now'}</span>
       </button>
     </div>
   </div>
@@ -326,7 +326,7 @@ const LessonView = memo(({ content, onCopy, onClear }: any) => {
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold text-foreground flex items-center gap-2 mb-2">
                     <BookOpen className="w-6 h-6 text-primary" />
-                    Lesson Content
+                    Your Personalized Lesson
                   </h2>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1.5">
@@ -355,7 +355,7 @@ const LessonView = memo(({ content, onCopy, onClear }: any) => {
                     className={cn(
                       "p-2.5 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95",
                       isBookmarked 
-                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30" 
+                        ? "bg-gradient-to-r from-amber-700 to-orange-700 dark:from-amber-600 dark:to-orange-600 text-white shadow-lg shadow-amber-500/30" 
                         : "glass-card border border-border/50 hover:border-primary/50 text-muted-foreground hover:text-primary"
                     )}
                   >
@@ -367,7 +367,7 @@ const LessonView = memo(({ content, onCopy, onClear }: any) => {
                     className={cn(
                       "p-2.5 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95",
                       showNotes
-                        ? "bg-gradient-to-r from-secondary/80 to-secondary text-white shadow-lg shadow-secondary/30"
+                        ? "bg-gradient-to-r from-purple-700 to-indigo-700 dark:from-purple-600 dark:to-indigo-600 text-white shadow-lg shadow-purple-500/30"
                         : "glass-card border border-border/50 hover:border-primary/50 text-muted-foreground hover:text-primary"
                     )}
                   >
@@ -593,7 +593,7 @@ export const LessonGenerator: React.FC<LessonGeneratorProps> = ({ uploads, apiKe
             // No transcript available - generate AI content based on video title
             sourceText = `Create a comprehensive educational lesson about: "${ytData.title}"\n\nThis is a YouTube video. Since the transcript is not available, create a detailed lesson covering what this video likely teaches, including key concepts, examples, and learning points.`;
             dispatch({ type: 'UPDATE_PROGRESS', payload: { progress: 30, message: 'Transcript unavailable - generating AI content from video title...' } });
-            toast('Transcript unavailable - generating lesson from video title', { icon: 'ℹ️' });
+            toast('Transcript unavailable - generating lesson from video title');
           }
         } catch (ytError: any) {
           dispatch({ type: 'GENERATION_FAILURE', payload: ytError.message || 'Failed to fetch YouTube data' });

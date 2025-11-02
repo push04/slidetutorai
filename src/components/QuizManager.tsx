@@ -561,8 +561,8 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
     return (
       <div className="space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold text-foreground">Quiz Summary</h1>
-          <p className="text-muted-foreground">Great job! Review your results and jump back in.</p>
+          <h1 className="text-3xl font-extrabold text-foreground">Mission Complete!</h1>
+          <p className="text-muted-foreground">Awesome work! See how you did and keep crushing it.</p>
         </div>
 
         {/* Light ribbon (summary) */}
@@ -570,7 +570,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
           <div className="app-container py-3 flex items-center justify-between gap-3">
             <GlassRibbonButton onClick={resetAll}>
               <Wand2 className="w-4 h-4" />
-              Generate new quiz
+              New Challenge
             </GlassRibbonButton>
 
             <ProgressSlimLight value={100} label={label} />
@@ -610,7 +610,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
 
         {/* Review list */}
         <div className="glass-card border rounded-xl p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-foreground mb-4">Review Answers</h2>
+          <h2 className="text-xl font-bold text-foreground mb-4">Your Answer Breakdown</h2>
           <div className="space-y-6">
             {session.questions.map((q, i) => {
               const user = session.answers[i];
@@ -895,7 +895,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
             className={cn(
               "flex-1 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2",
               sourceType === 'document'
-                ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30"
+                ? "bg-gradient-to-r from-indigo-700 to-purple-700 dark:from-indigo-600 dark:to-purple-600 text-white shadow-lg shadow-primary/30"
                 : "glass-card border border-border/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
             )}
           >
@@ -910,7 +910,7 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
             className={cn(
               "flex-1 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2",
               sourceType === 'youtube'
-                ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30"
+                ? "bg-gradient-to-r from-red-700 to-pink-700 dark:from-red-600 dark:to-pink-600 text-white shadow-lg shadow-red-500/30"
                 : "glass-card border border-border/50 text-muted-foreground hover:border-red-500/50 hover:text-foreground"
             )}
           >
@@ -1036,8 +1036,8 @@ export const QuizManager: React.FC<QuizManagerProps> = ({ uploads, apiKey }) => 
             disabled={(sourceType === 'document' ? !selectedUpload : !youtubeUrl.trim()) || generating || !apiKey}
             className={cn(
               "px-10 py-4 rounded-xl font-bold text-white shadow-lg relative overflow-hidden group transition-all duration-300",
-              "bg-gradient-to-r from-secondary via-primary to-secondary bg-size-200 bg-pos-0",
-              "hover:shadow-2xl hover:shadow-secondary/40 hover:scale-105 hover:bg-pos-100 active:scale-95",
+              "bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600",
+              "hover:shadow-2xl hover:shadow-primary/40 hover:scale-105 hover:from-indigo-800 hover:via-purple-800 hover:to-pink-800 dark:hover:from-indigo-500 dark:hover:via-purple-500 dark:hover:to-pink-500 active:scale-95",
               "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             )}
           >

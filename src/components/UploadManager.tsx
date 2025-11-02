@@ -213,7 +213,7 @@ const UploadDropzone = memo(({ onFilesAdded }: { onFilesAdded: (files: File[]) =
             }`}
         >
             <UploadIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-foreground">Drop files or click to upload</h3>
+            <h3 className="text-xl font-semibold text-foreground">Drop Your Files or Click to Upload</h3>
             <p className="text-sm text-muted-foreground">PDF and PPTX supported</p>
             <input ref={inputRef} type="file" multiple className="hidden" onChange={handleChange} accept=".pdf,.pptx,.ppt"/>
         </div>
@@ -404,8 +404,8 @@ export const UploadManager: React.FC<UploadManagerProps> = ({
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="text-center p-4">
-        <h1 className="text-3xl font-bold text-foreground">Upload Documents</h1>
-        <p className="text-muted-foreground mt-1">Uploads will start automatically. Concurrency: {concurrency}.</p>
+        <h1 className="text-3xl font-bold text-foreground">Power Up Your Library</h1>
+        <p className="text-muted-foreground mt-1">Drop your PDFs and presentations - we'll transform them into study superpowers automatically!</p>
       </div>
 
       <div className="glass-card rounded-xl p-6 shadow-sm border border-border/40">

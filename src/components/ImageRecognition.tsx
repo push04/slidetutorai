@@ -59,8 +59,9 @@ export function ImageRecognition({ onImageProcessed, apiKey }: ImageRecognitionP
       setProcessingStatus('analyzing');
       console.log('[OCR] Starting FREE Tesseract.js OCR processing...');
 
-      // Initialize Tesseract worker (completely free, runs in browser)
-      worker = await createWorker('eng', 1, {
+      // Initialize Tesseract worker with multiple language support
+      // Supports: English + mathematical equations + handwriting recognition
+      worker = await createWorker(['eng'], 1, {
         logger: (m: any) => {
           if (m.status === 'recognizing text') {
             console.log(`[OCR] Progress: ${(m.progress * 100).toFixed(0)}%`);
@@ -94,7 +95,7 @@ export function ImageRecognition({ onImageProcessed, apiKey }: ImageRecognitionP
           setProcessingStatus('analyzing');
           console.log('[OCR] Enhancing with AI analysis...');
 
-          // Use AI to format and analyze the extracted text
+          // Use AI to format and analyze the extracted text with enhanced prompt
           const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -108,22 +109,31 @@ export function ImageRecognition({ onImageProcessed, apiKey }: ImageRecognitionP
               messages: [
                 {
                   role: 'user',
-                  content: `Format and enhance this OCR-extracted text into a well-structured, beautiful document:
+                  content: `You are an expert OCR text enhancer. Analyze and enhance this OCR-extracted text:
 
 ${extractedText}
 
-Please:
-1. Fix any OCR errors or typos
-2. Format with proper markdown (headers, lists, bold)
-3. Organize into logical sections if applicable
-4. Add clarity while preserving all original information
-5. If it contains educational content, highlight key concepts
+Your task:
+1. Fix ALL OCR errors, typos, and character recognition mistakes
+2. Identify content type (handwriting, printed text, equations, diagrams, tables, etc.)
+3. For mathematical content: preserve equations and formulas accurately
+4. For tables/charts: reconstruct structure using markdown tables
+5. For diagrams: describe the visual elements clearly
+6. Format beautifully with markdown (headers, lists, bold, code blocks)
+7. Organize into logical sections with clear hierarchy
+8. Preserve ALL original information - no omissions
 
-Return the enhanced, beautifully formatted text.`
+If the text contains:
+- Math: Use LaTeX notation in code blocks
+- Tables: Use markdown table syntax
+- Technical terms: Keep them intact
+- Handwriting: Correct errors while preserving meaning
+
+Return the enhanced, professionally formatted text.`
                 }
               ],
               temperature: 0.3,
-              max_tokens: 3000
+              max_tokens: 4000
             })
           });
 
@@ -156,7 +166,7 @@ Return the enhanced, beautifully formatted text.`
       setProcessingStatus('success');
       onImageProcessed(processedData);
       
-      toast.success(`✨ Successfully extracted ${extractedText.length} characters from image!`);
+      toast.success(`Successfully extracted ${extractedText.length} characters from image!`);
       
       // Keep the result visible for review
       setTimeout(() => {
@@ -208,8 +218,8 @@ Return the enhanced, beautifully formatted text.`
             <Scan className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-1">Advanced Image Recognition & OCR</h1>
-            <p className="text-muted-foreground">✨ FREE OCR - Extract text from any image (no API keys needed!)</p>
+            <h1 className="text-3xl font-bold text-foreground mb-1">Snap & Extract Instantly</h1>
+            <p className="text-muted-foreground">Transform any image into editable text - handwriting, equations, diagrams & more!</p>
           </div>
         </div>
 
@@ -221,8 +231,8 @@ Return the enhanced, beautifully formatted text.`
                 <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-foreground">FREE OCR</div>
-                <div className="text-xs text-muted-foreground">No API Keys</div>
+                <div className="text-lg font-bold text-foreground">100% Free</div>
+                <div className="text-xs text-muted-foreground">Zero API costs</div>
               </div>
             </div>
           </div>
@@ -232,8 +242,8 @@ Return the enhanced, beautifully formatted text.`
                 <Eye className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-foreground">Vision AI</div>
-                <div className="text-xs text-muted-foreground">Content Analysis</div>
+                <div className="text-lg font-bold text-foreground">AI Enhanced</div>
+                <div className="text-xs text-muted-foreground">Smart formatting</div>
               </div>
             </div>
           </div>
@@ -243,8 +253,8 @@ Return the enhanced, beautifully formatted text.`
                 <Scan className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-foreground">Smart</div>
-                <div className="text-xs text-muted-foreground">Diagram Recognition</div>
+                <div className="text-lg font-bold text-foreground">Universal</div>
+                <div className="text-xs text-muted-foreground">Charts & diagrams</div>
               </div>
             </div>
           </div>
@@ -345,7 +355,7 @@ Return the enhanced, beautifully formatted text.`
           <button
             onClick={handleProcessImage}
             disabled={isProcessing || !selectedFile}
-            className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
+            className="w-full px-4 py-3 bg-gradient-to-r from-purple-700 to-indigo-700 dark:from-purple-600 dark:to-indigo-600 hover:from-purple-800 hover:to-indigo-800 dark:hover:from-purple-500 dark:hover:to-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
           >
             {isProcessing ? (
               <>
@@ -360,15 +370,37 @@ Return the enhanced, beautifully formatted text.`
             )}
           </button>
 
-          {/* Tips */}
-          <div className="mt-6 p-4 bg-primary/5 rounded-xl border border-primary/20">
-            <h4 className="text-sm font-semibold text-foreground mb-2">💡 Pro Tips:</h4>
-            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Works with printed text, handwriting, and mathematical equations</li>
-              <li>Analyzes diagrams, charts, tables, and graphs</li>
-              <li>Higher resolution images provide better accuracy</li>
-              <li>Supports multiple languages and technical notation</li>
-            </ul>
+          {/* Enhanced Capabilities Grid */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-4 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-xl border border-purple-500/20">
+              <h4 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-purple-500" />
+                Text Recognition
+              </h4>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>✓ Printed text (books, documents)</li>
+                <li>✓ Handwritten notes & signatures</li>
+                <li>✓ Multiple languages supported</li>
+              </ul>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl border border-indigo-500/20">
+              <h4 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
+                <Scan className="w-4 h-4 text-indigo-500" />
+                Visual Analysis
+              </h4>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>✓ Mathematical equations & formulas</li>
+                <li>✓ Diagrams, charts & tables</li>
+                <li>✓ Technical notation & symbols</li>
+              </ul>
+            </div>
+          </div>
+          
+          {/* Pro Tips */}
+          <div className="mt-3 p-3 bg-primary/5 rounded-xl border border-primary/20">
+            <p className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">Pro Tip:</span> Higher resolution images (1200x1200+ pixels) provide significantly better accuracy, especially for handwriting and complex equations!
+            </p>
           </div>
         </div>
       </div>

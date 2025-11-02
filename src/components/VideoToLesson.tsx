@@ -409,7 +409,7 @@ Use proper markdown with headers, bold text, bullet points, and professional for
         <button
           onClick={handleProcessVideo}
           disabled={isProcessing || !youtubeUrl.trim()}
-          className="w-full px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full px-4 py-2 bg-gradient-to-r from-red-700 to-pink-700 dark:from-red-600 dark:to-pink-600 hover:from-red-800 hover:to-pink-800 dark:hover:from-red-500 dark:hover:to-pink-500 text-white rounded-lg transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isProcessing ? (
             <>
@@ -426,7 +426,7 @@ Use proper markdown with headers, bold text, bullet points, and professional for
 
         {/* Quick Tips */}
         <div className="mt-6 p-4 bg-primary/5 rounded-xl border border-primary/20">
-          <h4 className="text-sm font-semibold text-foreground mb-2">💡 Pro Tips:</h4>
+          <h4 className="text-sm font-semibold text-foreground mb-2">Pro Tips:</h4>
           <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
             <li>Works with educational, tutorial, and documentary videos</li>
             <li>AI generates comprehensive learning materials</li>
@@ -460,7 +460,7 @@ Use proper markdown with headers, bold text, bullet points, and professional for
             <button
               onClick={handleGenerateQuiz}
               disabled={isGeneratingQuiz || !apiKey}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-cyan-700 dark:from-blue-600 dark:to-cyan-600 hover:from-blue-800 hover:to-cyan-800 dark:hover:from-blue-500 dark:hover:to-cyan-500 text-white rounded-lg transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGeneratingQuiz ? (
                 <>
@@ -477,7 +477,7 @@ Use proper markdown with headers, bold text, bullet points, and professional for
             <button
               onClick={handleGenerateFlashcards}
               disabled={isGeneratingFlashcards || !apiKey}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-700 to-pink-700 dark:from-purple-600 dark:to-pink-600 hover:from-purple-800 hover:to-pink-800 dark:hover:from-purple-500 dark:hover:to-pink-500 text-white rounded-lg transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGeneratingFlashcards ? (
                 <>
@@ -494,7 +494,7 @@ Use proper markdown with headers, bold text, bullet points, and professional for
             <button
               onClick={handleGenerateNotes}
               disabled={isGeneratingNotes || !apiKey}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-700 to-emerald-700 dark:from-green-600 dark:to-emerald-600 hover:from-green-800 hover:to-emerald-800 dark:hover:from-green-500 dark:hover:to-emerald-500 text-white rounded-lg transition-all shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGeneratingNotes ? (
                 <>

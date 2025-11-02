@@ -14,17 +14,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ uploads, onNavigate }) => 
   const indexedUploads = uploads.filter(u => u.indexed).length;
 
   const stats = [
-    { label: 'Total Uploads', value: uploads.length, icon: Upload, color: 'indigo' },
-    { label: 'Slides Processed', value: totalSlides, icon: FileText, color: 'emerald' },
-    { label: 'Indexed Documents', value: indexedUploads, icon: Brain, color: 'purple' },
-    { label: 'Ready for Chat', value: indexedUploads, icon: MessageSquare, color: 'blue' },
+    { label: 'Study Materials', value: uploads.length, icon: Upload, color: 'indigo' },
+    { label: 'Content Mastered', value: totalSlides, icon: FileText, color: 'emerald' },
+    { label: 'Knowledge Base', value: indexedUploads, icon: Brain, color: 'purple' },
+    { label: 'AI Tutor Ready', value: indexedUploads, icon: MessageSquare, color: 'blue' },
   ];
 
   const quickActions = [
-    { label: 'Upload Files', description: 'Add new PDFs or PPTX files', action: () => onNavigate('upload'), icon: Upload },
-    { label: 'Generate Lesson', description: 'Create AI-powered lessons', action: () => onNavigate('lessons'), icon: Brain },
-    { label: 'Take Quiz', description: 'Practice with generated quizzes', action: () => onNavigate('quiz'), icon: FileText },
-    { label: 'Chat Q&A', description: 'Ask questions about your documents', action: () => onNavigate('chat'), icon: MessageSquare },
+    { label: 'Add Study Material', description: 'Upload PDFs and presentations instantly', action: () => onNavigate('upload'), icon: Upload },
+    { label: 'Build Smart Lessons', description: 'Transform content into learning magic', action: () => onNavigate('lessons'), icon: Brain },
+    { label: 'Test Your Mastery', description: 'Challenge yourself with AI quizzes', action: () => onNavigate('quiz'), icon: FileText },
+    { label: 'Get Instant Answers', description: 'Your personal study assistant', action: () => onNavigate('chat'), icon: MessageSquare },
   ];
 
   return (
@@ -34,9 +34,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ uploads, onNavigate }) => 
         <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center mb-4">
           <TrendingUp className="w-8 h-8 text-white" />
         </div>
-        <h1 className="text-4xl font-bold text-foreground">Welcome to SlideTutor AI</h1>
+        <h1 className="text-4xl font-bold text-foreground">Your Learning Superpower Starts Here</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Transform your learning experience with AI-powered lessons, quizzes, and flashcards from your presentations and documents.
+          Turn any presentation or document into personalized study materials that actually stick. Powered by AI, designed for student success.
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ uploads, onNavigate }) => 
 
       {/* Quick Actions */}
       <div className="glass-card rounded-xl p-8 shadow-sm border border-border/40">
-        <h2 className="text-2xl font-bold text-foreground mb-6">Quick Actions</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-6">Jump Into Action</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action, index) => {
             const Icon = action.icon;
@@ -83,16 +83,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ uploads, onNavigate }) => 
 
       {/* Recent Uploads */}
       <div className="glass-card rounded-xl p-8 shadow-sm border border-border/40">
-        <h2 className="text-2xl font-bold text-foreground mb-6">Recent Uploads</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-6">Your Study Library</h2>
         {uploads.length === 0 ? (
           <div className="text-center py-12">
             <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">No uploads yet. Get started by uploading your first document!</p>
+            <p className="text-muted-foreground mb-4">Ready to ace your studies? Upload your first document and watch the magic happen!</p>
             <button
               onClick={() => onNavigate('upload')}
               className="px-6 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors"
             >
-              Upload Files
+              Start Learning Now
             </button>
           </div>
         ) : (

@@ -125,15 +125,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-foreground mb-4">Chat Q&A</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-4">Your AI Study Buddy</h1>
         <p className="text-lg text-muted-foreground">
-          Ask questions about your documents and get AI-powered answers.
+          Ask anything about your materials - get instant, intelligent answers that actually make sense.
         </p>
       </div>
 
       {/* Document Selection */}
       <div className="glass-card rounded-xl p-6 shadow-sm border border-border/40">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Select Documents to Query</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Choose Your Study Materials</h2>
         {indexedUploads.length === 0 ? (
           <p className="text-muted-foreground">No indexed documents available. Upload and process documents first.</p>
         ) : (
@@ -165,7 +165,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
           {messages.length === 0 ? (
             <div className="text-center py-12">
               <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Start a conversation by asking a question about your documents.</p>
+              <p className="text-muted-foreground">Ready to unlock insights? Ask your first question and discover what your materials really mean!</p>
             </div>
           ) : (
             messages.map((message) => (
