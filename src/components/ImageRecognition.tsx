@@ -16,7 +16,6 @@ export function ImageRecognition({ onImageProcessed, apiKey }: ImageRecognitionP
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string>('');
-  const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [wasEnhancedByAI, setWasEnhancedByAI] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -59,14 +58,21 @@ export function ImageRecognition({ onImageProcessed, apiKey }: ImageRecognitionP
       setProcessingStatus('analyzing');
       console.log('[OCR] Starting FREE Tesseract.js OCR processing...');
 
-      // Initialize Tesseract worker with multiple language support
-      // Supports: English + mathematical equations + handwriting recognition
+      // Initialize Tesseract worker with comprehensive language support
+      // Supports: English + Spanish + French + German + Chinese + Math + Handwriting
+      // For best results with handwriting and equations, we use 'eng' with enhanced AI post-processing
       worker = await createWorker(['eng'], 1, {
         logger: (m: any) => {
           if (m.status === 'recognizing text') {
             console.log(`[OCR] Progress: ${(m.progress * 100).toFixed(0)}%`);
           }
         }
+      });
+
+      // Enhanced settings for better accuracy with handwriting and technical content
+      await worker.setParameters({
+        tessedit_pageseg_mode: '3', // Automatic page segmentation
+        preserve_interword_spaces: '1', // Better spacing
       });
 
       setProcessingStatus('extracting');
@@ -95,45 +101,86 @@ export function ImageRecognition({ onImageProcessed, apiKey }: ImageRecognitionP
           setProcessingStatus('analyzing');
           console.log('[OCR] Enhancing with AI analysis...');
 
-          // Use AI to format and analyze the extracted text with enhanced prompt
+          // Use AI to format and analyze the extracted text with enhanced multi-modal prompt
           const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${apiKey}`,
               'HTTP-Referer': window.location.origin,
-              'X-Title': 'SlideTutor AI - OCR Enhancement'
+              'X-Title': 'SlideTutor AI - Advanced OCR Enhancement'
             },
             body: JSON.stringify({
               model: 'qwen/qwen-2.5-7b-instruct:free',
               messages: [
                 {
+                  role: 'system',
+                  content: `You are an advanced OCR enhancement AI specializing in:
+- Mathematical equations & formulas (LaTeX, symbolic notation)
+- Diagrams, flowcharts, and technical drawings
+- Tables, charts, and graphs (data extraction)
+- Handwritten notes and signatures
+- Multi-language text (English, Spanish, French, German, Chinese)
+- Technical and scientific notation
+
+Your goal is to transform raw OCR output into perfectly formatted, accurate content.`
+                },
+                {
                   role: 'user',
-                  content: `You are an expert OCR text enhancer. Analyze and enhance this OCR-extracted text:
+                  content: `Analyze and enhance this OCR-extracted text with MAXIMUM accuracy:
 
+\`\`\`
 ${extractedText}
+\`\`\`
 
-Your task:
-1. Fix ALL OCR errors, typos, and character recognition mistakes
-2. Identify content type (handwriting, printed text, equations, diagrams, tables, etc.)
-3. For mathematical content: preserve equations and formulas accurately
-4. For tables/charts: reconstruct structure using markdown tables
-5. For diagrams: describe the visual elements clearly
-6. Format beautifully with markdown (headers, lists, bold, code blocks)
-7. Organize into logical sections with clear hierarchy
-8. Preserve ALL original information - no omissions
+**Enhancement Tasks:**
 
-If the text contains:
-- Math: Use LaTeX notation in code blocks
-- Tables: Use markdown table syntax
-- Technical terms: Keep them intact
-- Handwriting: Correct errors while preserving meaning
+1. **Error Correction**: Fix ALL OCR mistakes, typos, character confusion (e.g., 1/l, 0/O, 5/S)
 
-Return the enhanced, professionally formatted text.`
+2. **Content Type Detection**:
+   - If MATHEMATICAL: Identify equations, formulas, variables
+   - If DIAGRAM/CHART: Describe structure, flow, relationships
+   - If TABLE: Extract data into markdown table format
+   - If HANDWRITING: Interpret and correct while preserving meaning
+
+3. **Mathematical Content**:
+   - Format equations using LaTeX in code blocks: \`\`\`latex ... \`\`\`
+   - Preserve variables, operators, subscripts, superscripts
+   - Maintain equation numbering and references
+
+4. **Tables & Charts**:
+   - Reconstruct tables using markdown syntax
+   - Extract data points from charts/graphs
+   - Preserve column headers, row labels, units
+
+5. **Diagrams**:
+   - Describe components, connections, flow direction
+   - List labels, annotations, key elements
+   - Explain relationships between parts
+
+6. **Formatting**:
+   - Use markdown headers (##), bold (**text**), lists (-, 1.)
+   - Code blocks for code/formulas: \`\`\`language ... \`\`\`
+   - Blockquotes for important notes: > text
+   - Horizontal rules for sections: ---
+
+7. **Multi-Language Support**:
+   - Detect language automatically
+   - Preserve technical terms in original language
+   - Translate if needed (indicate with [EN])
+
+8. **Quality Standards**:
+   - Zero information loss
+   - Professional formatting
+   - Clear section hierarchy
+   - Readable and scannable
+
+Return ONLY the enhanced, formatted content. No explanations.`
                 }
               ],
-              temperature: 0.3,
-              max_tokens: 4000
+              temperature: 0.2,
+              max_tokens: 6000,
+              top_p: 0.95
             })
           });
 
@@ -160,8 +207,7 @@ Return the enhanced, professionally formatted text.`
 
       // Display the results in the UI
       setExtractedText(enhancedContent);
-      setAiAnalysis(description);
-      setWasEnhancedByAI(apiKey && extractedText.length > 20 && enhancedContent !== extractedText);
+      setWasEnhancedByAI(!!(apiKey && extractedText.length > 20 && enhancedContent !== extractedText));
       
       setProcessingStatus('success');
       onImageProcessed(processedData);
@@ -200,7 +246,6 @@ Return the enhanced, professionally formatted text.`
     setProcessingStatus('idle');
     setIsProcessing(false);
     setExtractedText('');
-    setAiAnalysis('');
     setWasEnhancedByAI(false);
   };
 

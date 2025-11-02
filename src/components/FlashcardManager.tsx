@@ -1,5 +1,5 @@
 import React, { useReducer, useMemo, useEffect, memo, useState } from 'react';
-import { CreditCard, Wand2, Download, Play, RotateCcw, CheckCircle, BookOpen, Youtube, FileDown } from 'lucide-react';
+import { CreditCard, Wand2, Play, RotateCcw, CheckCircle, BookOpen, Youtube, FileDown } from 'lucide-react';
 import { Upload } from '../services/FileProcessor';
 import { ChunkedAIProcessor } from '../services/ChunkedAIProcessor';
 import { useFlashcards, updateCardWithSM2 } from '../contexts/FlashcardContext';

@@ -23,8 +23,9 @@ import { SocraticTutor } from './components/SocraticTutor';
 import { StudyTimer } from './components/StudyTimer';
 import { VideoToLesson } from './components/VideoToLesson';
 import { ImageRecognition } from './components/ImageRecognition';
+import { InvestorPanel } from './components/InvestorPanel';
 
-export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'settings' | 'ai-tutor' | 'study-timer' | 'image-recognition';
+export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'investors' | 'settings' | 'ai-tutor' | 'study-timer' | 'image-recognition';
 
 /**
  * The main application component.
@@ -129,6 +130,7 @@ function AppContent() {
         onSessionComplete={() => {}}
       />
     ),
+    investors: <InvestorPanel />,
     settings: <Settings uploads={uploads as Upload[]} />,
   };
 

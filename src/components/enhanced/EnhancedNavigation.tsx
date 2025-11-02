@@ -3,9 +3,8 @@ import {
   LayoutDashboard, Upload, BookOpen, Brain, Layers, 
   MessageSquare, Settings, Sparkles,
   Clock, GraduationCap, Menu, X, Youtube, Scan,
-  Sun, Moon
+  Sun, Moon, TrendingUp
 } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../contexts/ThemeContext';
 import { cn } from '../../lib/utils';
 import { GlobalSearch } from '../GlobalSearch';
@@ -184,8 +183,65 @@ function Sidebar({ isOpen, onClose, activeTab, onTabChange }: {
             </div>
           ))}
           
-          {/* Settings */}
+          {/* Investor Panel - Above Settings */}
           <div className="pt-4 border-t border-border/30 mt-4">
+            <h3 className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wider mb-3 px-3 flex items-center gap-2">
+              <span className="h-px flex-1 bg-gradient-to-r from-border/0 via-border/50 to-border/0"></span>
+              <span>Company</span>
+              <span className="h-px flex-1 bg-gradient-to-r from-border/0 via-border/50 to-border/0"></span>
+            </h3>
+            <button
+              onClick={() => {
+                onTabChange('investors');
+                onClose();
+              }}
+              className={cn(
+                'w-full px-3 py-3 rounded-xl flex items-center gap-3.5 transition-all duration-300 group relative overflow-hidden mb-3',
+                activeTab === 'investors'
+                  ? 'bg-gradient-to-r from-emerald-500/15 via-green-500/10 to-teal-500/15 border border-emerald-400/25 text-foreground shadow-lg shadow-emerald-500/10'
+                  : 'hover:bg-gradient-to-r hover:from-muted/60 hover:via-muted/40 hover:to-muted/60 text-muted-foreground hover:text-foreground hover:border hover:border-border/50 hover:shadow-md'
+              )}
+            >
+              {activeTab === 'investors' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse opacity-50"></div>
+              )}
+              
+              <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 relative',
+                activeTab === 'investors'
+                  ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/30 scale-105'
+                  : 'bg-gradient-to-br from-muted/60 to-muted/40 group-hover:from-muted group-hover:to-muted/80 group-hover:scale-110 group-hover:shadow-md'
+              )}>
+                {activeTab === 'investors' && (
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent"></div>
+                )}
+                <TrendingUp className={cn(
+                  'w-5 h-5 relative z-10 transition-all duration-300',
+                  activeTab === 'investors' ? 'text-white' : 'text-muted-foreground group-hover:text-foreground'
+                )} />
+              </div>
+              <div className="flex-1 text-left relative z-10">
+                <div className={cn(
+                  "font-semibold text-sm tracking-tight transition-all duration-200",
+                  activeTab === 'investors' && "text-foreground"
+                )}>
+                  For Investors
+                </div>
+                <div className={cn(
+                  "text-xs mt-0.5 transition-all duration-200",
+                  activeTab === 'investors' ? "text-muted-foreground/90" : "text-muted-foreground/60 group-hover:text-muted-foreground/80"
+                )}>
+                  Investment Opportunity
+                </div>
+              </div>
+              {activeTab === 'investors' && (
+                <div className="w-1 h-8 rounded-full bg-gradient-to-b from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/50"></div>
+              )}
+            </button>
+          </div>
+          
+          {/* Settings */}
+          <div>
             <button
               onClick={() => {
                 onTabChange('settings');
@@ -248,7 +304,6 @@ interface EnhancedNavigationProps {
 }
 
 export function EnhancedNavigation({ activeTab, onTabChange }: EnhancedNavigationProps) {
-  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
