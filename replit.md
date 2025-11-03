@@ -3,6 +3,33 @@
 ## Overview
 SlideTutor AI is a production-ready learning platform that transforms educational content into interactive lessons, quizzes, and flashcards using AI. It features a modern, dark-mode-only UI and provides a comprehensive and engaging learning experience. The project emphasizes gamification, robust security, and a scalable architecture to support a rich set of learning activities and user interactions, aiming to be a completely free platform.
 
+## Recent Changes (November 2025)
+
+### AI Coach Enhancements
+- **Expanded Language Support:** Now supports 15 languages (English, Hindi, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Portuguese, Russian, Italian, Turkish, Polish, Dutch)
+- **Enhanced AI Models:** Updated OpenRouter integration to use 10+ free AI models with automatic fallback (LLaMA 3.3 70B, DeepSeek R1, Gemini 2.0 Flash, Qwen 2.5 72B, etc.)
+- **Markdown Rendering:** Added full markdown support with syntax highlighting for code blocks using ReactMarkdown and rehype-highlight
+- **Conversation Persistence:** Implemented localStorage-based conversation history that survives page refreshes
+- **Improved UX:** 
+  - Gentle microphone permission requests with friendly error messages
+  - Streaming responses with real-time markdown rendering
+  - Enhanced loading states with animated indicators
+  - Export conversation functionality
+
+### Investor Panel Improvements
+- **Netlify Forms Integration:** Fixed form submission to properly work with Netlify Forms for payment confirmations
+- **Hidden form elements:** Added proper form detection in index.html for build-time form recognition
+
+### UI/UX Enhancements
+- **Ultra-Professional Scrollbars:** Beautiful gradient scrollbars with glow effects and smooth animations
+- **Deployment Configuration:** Set up autoscale deployment with proper build and preview commands
+- **Better Error Handling:** User-friendly error messages throughout the application
+
+### Technical Improvements
+- **Code Quality:** Fixed TypeScript/LSP issues and removed unused imports
+- **Performance:** Optimized conversation history management
+- **Accessibility:** Improved permission request flows and user feedback
+
 ## User Preferences
 I prefer simple language and clear explanations. I want iterative development with frequent, small updates rather than large, infrequent ones. Please ask before making any major architectural changes or introducing new dependencies. I prefer to be involved in decisions regarding UI/UX, especially color schemes and design patterns.
 
@@ -34,7 +61,7 @@ The application features a modern, dark-mode-only UI with glass morphism effects
 -   **Database:** Supabase (PostgreSQL) with a highly normalized and performant schema.
 -   **Modularity:** Clear code organization (`components`, `contexts`, `hooks`, `lib`, `services`, `types`).
 -   **Deployment:** Configured for Replit and compatible with static hosting services like Netlify and Vercel.
--   **AI Coach:** Advanced AI Coach with multi-model fallback, always-on voice recognition, text-to-speech, conversation history, and general knowledge capabilities.
+-   **AI Coach:** Professional AI Coach with 10+ free AI models, 15-language support, real-time streaming responses, markdown rendering with syntax highlighting, conversation persistence, voice recognition, text-to-speech, and comprehensive learning features.
 
 ## External Dependencies
 -   **Supabase:** Database (PostgreSQL), Authentication, Realtime features.

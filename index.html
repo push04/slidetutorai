@@ -27,6 +27,12 @@
       <input type="text" name="investmentRange" />
       <textarea name="message"></textarea>
     </form>
+    <form name="investor-payment-confirmation" netlify netlify-honeypot="bot-field" hidden>
+      <input type="text" name="tier" />
+      <input type="text" name="bankName" />
+      <input type="text" name="transactionLast4" />
+      <input type="text" name="payerName" />
+    </form>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
