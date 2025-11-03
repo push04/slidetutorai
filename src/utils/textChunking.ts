@@ -27,8 +27,8 @@ export function chunkText(
   options: ChunkOptions = {}
 ): TextChunk[] {
   const {
-    maxChunkSize = 4000, // Reduced for better AI processing quality
-    overlapSize = 500,   // Increased overlap for better context preservation
+    maxChunkSize = 3000, // Optimized for better AI processing quality and reduced hallucination
+    overlapSize = 600,   // Larger overlap for maximum context preservation
     preserveParagraphs = true,
     adaptiveChunking = true,
   } = options;

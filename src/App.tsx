@@ -19,15 +19,16 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { KeyboardShortcutsGuide } from './components/KeyboardShortcutsGuide';
 import { useUploads, useCreateUpload, useDeleteUpload } from './hooks/useLocalStorage';
-import { SocraticTutor } from './components/SocraticTutor';
 import { StudyTimer } from './components/StudyTimer';
 import { VideoToLesson } from './components/VideoToLesson';
 import { ImageRecognition } from './components/ImageRecognition';
 import { InvestorPanel } from './components/InvestorPanel';
-import { AITutor } from './components/AITutor';
-import { PricingPayment } from './components/PricingPayment';
+import { ProfessionalAICoach } from './components/ProfessionalAICoach';
+import { NotesApp } from './components/NotesApp';
+import { TaskManager } from './components/TaskManager';
+import { HabitTracker } from './components/HabitTracker';
 
-export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'investors' | 'settings' | 'ai-tutor' | 'study-timer' | 'image-recognition' | 'pricing' | 'voice-tutor';
+export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'investors' | 'settings' | 'ai-coach' | 'study-timer' | 'image-recognition' | 'notes' | 'tasks' | 'habits';
 
 /**
  * The main application component.
@@ -126,15 +127,16 @@ function AppContent() {
     quiz: <QuizManager uploads={uploads as Upload[]} apiKey={apiKey} />,
     flashcards: <FlashcardManager uploads={uploads as Upload[]} apiKey={apiKey} />,
     chat: <ChatInterface uploads={uploads as Upload[]} apiKey={apiKey} />,
-    'ai-tutor': <SocraticTutor apiKey={apiKey} />,
-    'voice-tutor': <AITutor />,
+    'ai-coach': <ProfessionalAICoach />,
     'study-timer': (
       <StudyTimer
         onSessionComplete={() => {}}
       />
     ),
+    notes: <NotesApp />,
+    tasks: <TaskManager />,
+    habits: <HabitTracker />,
     investors: <InvestorPanel />,
-    pricing: <PricingPayment />,
     settings: <Settings uploads={uploads as Upload[]} />,
   };
 

@@ -270,8 +270,8 @@ export class OpenRouterAPI {
     // Process in chunks with progress tracking
     onProgress?.(5, 'Preparing content chunks...');
     const chunks = chunkText(content, {
-      maxChunkSize: 4000, // Smaller chunks for better quality
-      overlapSize: 500,   // More overlap for better context
+      maxChunkSize: 3000, // Optimized chunk size to prevent hallucination
+      overlapSize: 600,   // Maximum overlap for context preservation
       preserveParagraphs: true,
       adaptiveChunking: true,
     });
@@ -337,12 +337,14 @@ export class OpenRouterAPI {
     
     const systemPrompt = isContinuation
       ? `You are an expert educator continuing a multi-part lesson.\n\n` +
-        `CRITICAL ANTI-HALLUCINATION RULES:\n` +
-        `✓ Use ONLY information explicitly stated in the provided content\n` +
-        `✓ DO NOT invent examples, facts, or statistics not in the content\n` +
-        `✓ DO NOT repeat concepts from previous parts\n` +
-        `✓ If content is unclear, teach what IS there without adding speculation\n` +
-        `✓ Stay strictly within the boundaries of the provided text\n\n` +
+        `⚠️ CRITICAL ANTI-HALLUCINATION RULES - FOLLOW STRICTLY:\n` +
+        `✓ Use ONLY information explicitly stated in the provided content below\n` +
+        `✓ DO NOT invent, assume, or add ANY examples, facts, statistics, or data not in the source\n` +
+        `✓ DO NOT repeat or rehash concepts from previous lesson parts\n` +
+        `✓ DO NOT speculate, generalize, or add common knowledge\n` +
+        `✓ If something is unclear or missing, DO NOT fill gaps - skip it\n` +
+        `✓ Every sentence must be traceable to the source content\n` +
+        `✓ When in doubt, say less rather than inventing content\n\n` +
         `Structure your response with:\n` +
         `- Clear section headings for new topics\n` +
         `- **Bold** for key terms\n` +
@@ -350,16 +352,23 @@ export class OpenRouterAPI {
         `- > blockquotes for important notes\n` +
         `- Lists for related items\n` +
         `- Code blocks with language tags for examples`
-      : `You are an expert educator and curriculum designer specializing in creating COMPREHENSIVE, DETAILED, and ENGAGING lessons.\n\n` +
-        `CRITICAL ANTI-HALLUCINATION RULES:\n` +
+      : `You are an expert educator and curriculum designer creating COMPREHENSIVE lessons from SOURCE MATERIAL ONLY.\n\n` +
+        `⚠️ CRITICAL ANTI-HALLUCINATION RULES - ABSOLUTE REQUIREMENTS:\n` +
         `✓ Use ONLY information explicitly present in the provided content\n` +
-        `✓ DO NOT add facts, examples, or statistics not in the source material\n` +
-        `✓ DO NOT invent case studies or scenarios\n` +
-        `✓ If you reference something, it MUST be in the provided content\n` +
-        `✓ When uncertain, focus on what IS clearly stated\n` +
-        `✓ Better to be accurate than comprehensive when content is limited\n\n` +
-        `CRITICAL: Create an EXTENSIVE, IN-DEPTH lesson that is LONGER and MORE DETAILED than typical educational content.\n` +
-        `Each section should be THOROUGH with MULTIPLE paragraphs, EXTENSIVE examples, and DETAILED explanations.\n\n` +
+        `✓ DO NOT add ANY facts, examples, statistics, or data not in the source\n` +
+        `✓ DO NOT invent case studies, scenarios, or real-world applications\n` +
+        `✓ DO NOT add general knowledge or common examples from outside the source\n` +
+        `✓ Every statement must be directly from the provided content\n` +
+        `✓ If you cannot find something in the content, DO NOT include it\n` +
+        `✓ Better to have a shorter accurate lesson than a longer one with invented content\n` +
+        `✓ When uncertain about ANY detail, omit it entirely\n\n` +
+        `STRICT CONTENT SOURCING:\n` +
+        `- Examples: ONLY from source material\n` +
+        `- Statistics/Numbers: ONLY if explicitly stated in source\n` +
+        `- Definitions: ONLY as written in source\n` +
+        `- Applications: ONLY if mentioned in source\n\n` +
+        `Create an EXTENSIVE, IN-DEPTH lesson using ONLY the provided content.\n` +
+        `Each section should be THOROUGH with MULTIPLE paragraphs and DETAILED explanations FROM THE SOURCE.\n\n` +
         `Required Structure (BE THOROUGH IN EVERY SECTION):\n\n` +
         `# [Clear, Descriptive Title]\n\n` +
         `## 📚 Overview\n` +
@@ -504,8 +513,8 @@ export class OpenRouterAPI {
     // For large content, split into chunks and generate questions from each
     onProgress?.(5, 'Preparing content chunks...');
     const chunks = chunkText(content, {
-      maxChunkSize: 4000, // Smaller chunks for better quality
-      overlapSize: 500,   // More overlap for context
+      maxChunkSize: 3000, // Optimized chunk size to prevent hallucination
+      overlapSize: 600,   // Maximum overlap for context preservation
       preserveParagraphs: true,
       adaptiveChunking: true,
     });
@@ -548,17 +557,25 @@ export class OpenRouterAPI {
   private async generateSingleQuiz(content: string, questionCount: number): Promise<string> {
     const systemPrompt =
       `You are an expert quiz creator. Generate clear, well-explained multiple-choice questions from the provided content.\n\n` +
-      `CRITICAL ANTI-HALLUCINATION RULES:\n` +
-      `✓ Create questions ONLY about facts explicitly stated in the content\n` +
-      `✓ DO NOT add questions about information not in the provided text\n` +
-      `✓ All answer options must be derivable from the content\n` +
-      `✓ Explanations must reference specific parts of the provided content\n` +
-      `✓ If content is limited, create fewer high-quality questions\n\n` +
+      `⚠️ CRITICAL ANTI-HALLUCINATION RULES - ABSOLUTE REQUIREMENTS:\n` +
+      `✓ Create questions ONLY about facts EXPLICITLY STATED in the content below\n` +
+      `✓ DO NOT create questions about general knowledge or outside information\n` +
+      `✓ DO NOT create questions about topics not covered in the provided text\n` +
+      `✓ All answer options must be directly derivable from the source content\n` +
+      `✓ Wrong answer options must be plausible based on content, not invented\n` +
+      `✓ Explanations must reference SPECIFIC parts of the provided content\n` +
+      `✓ DO NOT assume or add ANY information beyond what is written\n` +
+      `✓ If content is limited, create fewer high-quality questions\n` +
+      `✓ Every question and option must be verifiable from the source text\n\n` +
+      `STRICT VERIFICATION REQUIREMENT:\n` +
+      `Before including each question, verify:\n` +
+      `1. The correct answer is explicitly stated in the content\n` +
+      `2. All incorrect options are based on content (or reasonable negations)\n` +
+      `3. The explanation quotes or references the source material\n\n` +
       `Return ONLY a valid JSON object with one key "quiz", an array of question objects.\n` +
       `Schema for each question:\n` +
-      `{\n  "question": "question text",\n  "options": ["option A", "option B", "option C", "option D"],\n  "correctIndex": 0,\n  "explanation": "detailed explanation of why this answer is correct and why others are wrong"\n}\n` +
-      `No markdown, no code fences, no extra text. Create questions that test understanding, not just memorization.\n` +
-      `Provide comprehensive explanations that help learners understand the concepts better.`;
+      `{\n  "question": "question text",\n  "options": ["option A", "option B", "option C", "option D"],\n  "correctIndex": 0,\n  "explanation": "detailed explanation with references to the source content"\n}\n` +
+      `No markdown, no code fences, no extra text. Questions must test understanding of the PROVIDED content only.`;
     const userPrompt = `Create exactly ${questionCount} multiple-choice questions from this content:\n\n${content}`;
 
     const messages: ChatMessage[] = [
@@ -627,8 +644,8 @@ export class OpenRouterAPI {
     console.log('[OpenRouterAPI] Starting chunked generation');
     onProgress?.(5, 'Preparing content chunks...');
     const chunks = chunkText(content, {
-      maxChunkSize: 4000, // Smaller chunks for better quality
-      overlapSize: 500,   // More overlap for context
+      maxChunkSize: 3000, // Optimized chunk size to prevent hallucination
+      overlapSize: 600,   // Maximum overlap for context preservation
       preserveParagraphs: true,
       adaptiveChunking: true,
     });
@@ -672,16 +689,25 @@ export class OpenRouterAPI {
 
   private async generateSingleFlashcardSet(content: string, cardCount: number): Promise<string> {
     const systemPrompt =
-      `You are an expert at creating educational flashcards. From the provided content, create clear, concise Q&A pairs.\n\n` +
-      `CRITICAL ANTI-HALLUCINATION RULES:\n` +
-      `✓ Create flashcards ONLY from facts explicitly in the provided content\n` +
-      `✓ DO NOT add information not present in the source text\n` +
-      `✓ Answers must be directly supported by the content\n` +
-      `✓ Hints should reference specific parts of the content\n` +
-      `✓ If content is limited, create fewer high-quality cards\n\n` +
+      `You are an expert at creating educational flashcards from SOURCE MATERIAL ONLY.\n\n` +
+      `⚠️ CRITICAL ANTI-HALLUCINATION RULES - ABSOLUTE REQUIREMENTS:\n` +
+      `✓ Create flashcards ONLY from facts EXPLICITLY STATED in the provided content\n` +
+      `✓ DO NOT add ANY information, examples, or facts not in the source\n` +
+      `✓ DO NOT create cards about general knowledge or outside information\n` +
+      `✓ Questions must be about concepts directly mentioned in the content\n` +
+      `✓ Answers must be word-for-word or paraphrased from the source only\n` +
+      `✓ Hints must reference specific parts of the provided content\n` +
+      `✓ DO NOT assume or infer information beyond what is written\n` +
+      `✓ If content is limited, create fewer high-quality cards\n` +
+      `✓ Every flashcard must be verifiable from the source text\n\n` +
+      `STRICT VERIFICATION REQUIREMENT:\n` +
+      `Before including each flashcard, verify:\n` +
+      `1. The question asks about something explicitly covered in the content\n` +
+      `2. The answer is directly stated or clearly derivable from the source\n` +
+      `3. The hint (if any) references actual content from the source\n\n` +
       `Return ONLY a valid JSON object with one key "flashcards", an array of cards.\n` +
       `Each card has "question" (front), "answer" (back), and "hint" (optional) keys.\n` +
-      `No markdown, no code fences, no extra text. Focus on key concepts and facts.`;
+      `No markdown, no code fences, no extra text. Focus on key concepts from the PROVIDED content only.`;
     const userPrompt = `Create exactly ${cardCount} flashcards from this content:\n\n${content}`;
 
     const messages: ChatMessage[] = [
