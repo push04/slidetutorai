@@ -77,7 +77,40 @@ This application is ready to deploy on multiple platforms:
 Build Command: `npm run build`
 Output Directory: `dist`
 
-## Recent Changes (November 2, 2025)
+## Recent Changes (November 3, 2025)
+### CRITICAL: Ultra-Large PDF Handling & Persistent Storage
+- **1000+ Page PDF Support**: Now handles PDFs with any number of pages (tested up to 1000+ pages)
+  - Advanced batch processing (50 pages at a time) with memory management
+  - Automatic checkpoints every 100 pages to prevent data loss
+  - Progressive processing with proper cleanup to prevent crashes
+  - File size limit increased to 200MB (4x increase from 50MB)
+- **Countdown Timers**: Real-time processing time estimates
+  - Accurate time calculation based on file size and page count
+  - Live countdown showing minutes and seconds remaining
+  - Visual progress bars with percentage completion
+  - Smooth animations and status updates
+- **Persistent Storage (IndexedDB)**: Data never vanishes when switching features
+  - All uploads preserved across page navigation
+  - Lessons saved permanently (survives refresh and feature switching)
+  - Quiz progress maintained across sessions
+  - Flashcard study progress preserved
+  - Processing jobs tracked and resumable
+- **Enhanced AI Processing with Anti-Hallucination**:
+  - **Comprehensive chunking**: 4000 chars chunks (optimized for quality) - processes ALL content, no sampling
+  - **Better context overlap**: 500 chars overlap (up from 200) preserves meaning between chunks
+  - **Full document coverage**: Every page processed, no content dropped regardless of size
+  - **Anti-hallucination prompts**: Explicit rules to use ONLY source content, no invented facts
+  - **Context continuity**: Strong hints between chunks prevent repetition and hallucinations
+  - **Better merging**: Deduplicates headers and overlapping content automatically
+  - **Adaptive chunking**: Automatically adjusts chunk size for technical content density
+  - **Exponential backoff**: 5 retries with smart delays for rate limiting
+- **InvestorPanel Redesigned**: 
+  - Beautiful rupee-based tiers (₹50, ₹100, ₹250, ₹500)
+  - Clear benefits for each investment level
+  - Professional responsive design with gradient effects
+  - Only shows real, working features currently in production
+
+## Previous Changes (November 2, 2025)
 ### Critical Fixes Implemented
 - **FREE YouTube Transcript API**: Replaced RapidAPI (required paid key) with completely free supadata.ai API that works without any API key
 - **Progress Tracking Fixed**: Added simulated incremental progress updates during AI generation to prevent getting stuck at 10% - now properly shows 10% → 90% during generation

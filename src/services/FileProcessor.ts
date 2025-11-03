@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
+import { largeFileProcessor } from '../lib/largeFileProcessor';
+import { persistentStorage } from '../lib/persistentStorage';
 
 // --- FIX: DECLARE GLOBAL VARIABLES ---
 // This tells TypeScript to trust that these variables exist in the global scope
@@ -9,6 +11,9 @@ declare const JSZip: any;
 // Required for pdf.js to work in a Vite/web environment
 // Use the global variable `pdfjsLib` instead of the imported `pdfjs`
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js`;
+
+// Threshold for using large file processor (50MB)
+const LARGE_FILE_SIZE_THRESHOLD = 50 * 1024 * 1024; // 50MB
 
 // ================================================================================================
 // 1. TYPE DEFINITIONS
@@ -39,19 +44,54 @@ export interface Upload {
  * @returns The extracted text and page/slide count.
  */
 async function parsePdf(file: File): Promise<{ fullText: string; slideCount: number }> {
+  console.log(`[PDF Parser] Starting PDF parsing for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+  
   const arrayBuffer = await file.arrayBuffer();
-  // FIX: Use the global `pdfjsLib` variable
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ 
+    data: arrayBuffer,
+    verbosity: 0,
+    disableFontFace: true,
+    isEvalSupported: false,
+  }).promise;
+  
   const numPages = pdf.numPages;
+  console.log(`[PDF Parser] Processing ${numPages} pages...`);
   let fullText = '';
+  const textChunks: string[] = [];
 
-  for (let i = 1; i <= numPages; i++) {
-    const page = await pdf.getPage(i);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items.map((item: any) => ('str' in item ? item.str : '')).join(' ');
-    fullText += `Slide ${i}:\n${pageText}\n\n`;
+  const BATCH_SIZE = 25;
+  for (let batch = 0; batch < Math.ceil(numPages / BATCH_SIZE); batch++) {
+    const start = batch * BATCH_SIZE + 1;
+    const end = Math.min((batch + 1) * BATCH_SIZE, numPages);
+    console.log(`[PDF Parser] Processing pages ${start}-${end}...`);
+
+    for (let i = start; i <= end; i++) {
+      try {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => ('str' in item ? item.str : ''))
+          .join(' ');
+        textChunks.push(`Slide ${i}:\n${pageText}\n\n`);
+        
+        page.cleanup();
+      } catch (error) {
+        console.error(`[PDF Parser] Error on page ${i}:`, error);
+        textChunks.push(`Slide ${i}:\n[Error reading page]\n\n`);
+      }
+    }
+
+    if (batch < Math.ceil(numPages / BATCH_SIZE) - 1) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
   }
 
+  fullText = textChunks.join('');
+  
+  pdf.cleanup();
+  pdf.destroy();
+  
+  console.log(`[PDF Parser] Completed! Extracted ${fullText.length} characters from ${numPages} pages`);
   return { fullText: fullText.trim(), slideCount: numPages };
 }
 
@@ -97,7 +137,39 @@ class FileProcessor {
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': parsePptx,
   };
 
-  public async processFile(file: File): Promise<Upload> {
+  public async processFile(file: File, onProgress?: (progress: number, message: string, estimatedTimeRemaining?: number) => void): Promise<Upload> {
+    // Check if this is a large file that needs special handling
+    const isLargeFile = file.size > LARGE_FILE_SIZE_THRESHOLD;
+    const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    
+    if (isPDF && isLargeFile) {
+      console.log(`[FileProcessor] Large PDF detected (${(file.size / 1024 / 1024).toFixed(2)}MB), using advanced processor...`);
+      
+      try {
+        const storedUpload = await largeFileProcessor.processLargePDF(file, {
+          onProgress,
+          saveCheckpoints: true,
+        });
+        
+        // Convert StoredUpload to Upload format
+        return {
+          id: storedUpload.id,
+          filename: storedUpload.filename,
+          size: storedUpload.size,
+          uploadedAt: storedUpload.uploadedAt,
+          processed: storedUpload.processed,
+          indexed: storedUpload.indexed,
+          slideCount: storedUpload.slideCount,
+          fullText: storedUpload.fullText,
+          status: storedUpload.status as 'processing' | 'completed' | 'failed',
+        };
+      } catch (error) {
+        console.error(`[FileProcessor] Large file processing failed:`, error);
+        throw error;
+      }
+    }
+    
+    // Standard processing for smaller files
     const upload: Upload = {
       id: uuidv4(),
       filename: file.name,
@@ -111,6 +183,8 @@ class FileProcessor {
     };
 
     try {
+      onProgress?.(5, 'Starting file processing...');
+      
       let strategy = this.processingStrategies[file.type];
       
       if (!strategy) {
@@ -121,6 +195,7 @@ class FileProcessor {
         }
       }
 
+      onProgress?.(10, 'Extracting text...');
       const { fullText, slideCount } = await strategy(file);
 
       upload.fullText = fullText;
@@ -128,6 +203,14 @@ class FileProcessor {
       upload.processed = true;
       upload.indexed = true;
       upload.status = 'completed';
+      
+      // Save to persistent storage
+      await persistentStorage.saveUpload({
+        ...upload,
+        processingProgress: 100,
+      });
+      
+      onProgress?.(100, 'Complete!', 0);
       
     } catch (error) {
       console.error(`Failed to process file ${file.name}:`, error);

@@ -235,7 +235,7 @@ export class OpenRouterAPI {
 
     // Estimate tokens and determine if chunking is needed
     const estimatedTokens = estimateTokenCount(content);
-    const needsChunking = estimatedTokens > 3000; // ~12,000 characters
+    const needsChunking = estimatedTokens > 4000; // ~16,000 characters - larger threshold for better efficiency
 
     if (!needsChunking) {
       // Process as single chunk with simulated progress
@@ -270,10 +270,13 @@ export class OpenRouterAPI {
     // Process in chunks with progress tracking
     onProgress?.(5, 'Preparing content chunks...');
     const chunks = chunkText(content, {
-      maxChunkSize: 4000,
-      overlapSize: 200,
+      maxChunkSize: 4000, // Smaller chunks for better quality
+      overlapSize: 500,   // More overlap for better context
       preserveParagraphs: true,
+      adaptiveChunking: true,
     });
+    
+    console.log(`[generateLesson] Processing large document: ${content.length} chars split into ${chunks.length} chunks`);
 
     onProgress?.(10, `Processing ${chunks.length} chunks...`);
     const chunkResults: string[] = [];
@@ -290,7 +293,15 @@ export class OpenRouterAPI {
       // Build context hint with previous chunk summary for continuity
       let contextHint: string | undefined;
       if (i > 0 && previousSummary) {
-        contextHint = `This is part ${i + 1} of ${chunks.length} of a multi-part lesson.\n\nPrevious sections covered: ${previousSummary}\n\nContinue building on these concepts. Focus on the NEW content below, avoiding repetition of previously covered material:`;
+        contextHint = `CRITICAL INSTRUCTIONS FOR PART ${i + 1} OF ${chunks.length}:\n\n` +
+          `1. This is a continuation of a multi-part lesson\n` +
+          `2. Previous sections already covered: ${previousSummary}\n` +
+          `3. DO NOT repeat or re-explain concepts from previous parts\n` +
+          `4. DO NOT make up information not present in the content below\n` +
+          `5. Focus ONLY on NEW content from the text below\n` +
+          `6. Build upon previous concepts naturally\n` +
+          `7. Use ONLY facts explicitly stated in the provided content\n\n` +
+          `Content to teach (STICK TO THIS ONLY):`;
       }
 
       const chunkLesson = await this.generateSingleLesson(chunk.text, contextHint, includeQuiz && i === chunks.length - 1);
@@ -309,9 +320,10 @@ export class OpenRouterAPI {
     }
 
     onProgress?.(95, 'Merging results...');
-    const mergedLesson = mergeChunkedResults(chunkResults);
+    const mergedLesson = mergeChunkedResults(chunkResults, 'lesson');
     onProgress?.(100, 'Complete!');
 
+    console.log(`[generateLesson] Merged lesson length: ${mergedLesson.length} chars from ${chunks.length} chunks`);
     return mergedLesson;
   }
 
@@ -324,7 +336,13 @@ export class OpenRouterAPI {
     const isContinuation = !!contextHint;
     
     const systemPrompt = isContinuation
-      ? `You are an expert educator continuing a multi-part lesson. Focus on the NEW content provided, building on previously covered topics without repeating them.\n\n` +
+      ? `You are an expert educator continuing a multi-part lesson.\n\n` +
+        `CRITICAL ANTI-HALLUCINATION RULES:\n` +
+        `✓ Use ONLY information explicitly stated in the provided content\n` +
+        `✓ DO NOT invent examples, facts, or statistics not in the content\n` +
+        `✓ DO NOT repeat concepts from previous parts\n` +
+        `✓ If content is unclear, teach what IS there without adding speculation\n` +
+        `✓ Stay strictly within the boundaries of the provided text\n\n` +
         `Structure your response with:\n` +
         `- Clear section headings for new topics\n` +
         `- **Bold** for key terms\n` +
@@ -333,6 +351,13 @@ export class OpenRouterAPI {
         `- Lists for related items\n` +
         `- Code blocks with language tags for examples`
       : `You are an expert educator and curriculum designer specializing in creating COMPREHENSIVE, DETAILED, and ENGAGING lessons.\n\n` +
+        `CRITICAL ANTI-HALLUCINATION RULES:\n` +
+        `✓ Use ONLY information explicitly present in the provided content\n` +
+        `✓ DO NOT add facts, examples, or statistics not in the source material\n` +
+        `✓ DO NOT invent case studies or scenarios\n` +
+        `✓ If you reference something, it MUST be in the provided content\n` +
+        `✓ When uncertain, focus on what IS clearly stated\n` +
+        `✓ Better to be accurate than comprehensive when content is limited\n\n` +
         `CRITICAL: Create an EXTENSIVE, IN-DEPTH lesson that is LONGER and MORE DETAILED than typical educational content.\n` +
         `Each section should be THOROUGH with MULTIPLE paragraphs, EXTENSIVE examples, and DETAILED explanations.\n\n` +
         `Required Structure (BE THOROUGH IN EVERY SECTION):\n\n` +
@@ -444,7 +469,7 @@ export class OpenRouterAPI {
     }
 
     const estimatedTokens = estimateTokenCount(content);
-    const needsChunking = estimatedTokens > 3000;
+    const needsChunking = estimatedTokens > 4000; // Larger threshold for better efficiency
 
     if (!needsChunking) {
       // Single chunk with simulated progress
@@ -479,10 +504,13 @@ export class OpenRouterAPI {
     // For large content, split into chunks and generate questions from each
     onProgress?.(5, 'Preparing content chunks...');
     const chunks = chunkText(content, {
-      maxChunkSize: 4000,
-      overlapSize: 100,
+      maxChunkSize: 4000, // Smaller chunks for better quality
+      overlapSize: 500,   // More overlap for context
       preserveParagraphs: true,
+      adaptiveChunking: true,
     });
+    
+    console.log(`[generateQuiz] Processing large document: ${content.length} chars split into ${chunks.length} chunks`);
 
     const questionsPerChunk = Math.ceil(questionCount / chunks.length);
     onProgress?.(10, `Generating ${questionCount} questions from ${chunks.length} chunks...`);
@@ -520,6 +548,12 @@ export class OpenRouterAPI {
   private async generateSingleQuiz(content: string, questionCount: number): Promise<string> {
     const systemPrompt =
       `You are an expert quiz creator. Generate clear, well-explained multiple-choice questions from the provided content.\n\n` +
+      `CRITICAL ANTI-HALLUCINATION RULES:\n` +
+      `✓ Create questions ONLY about facts explicitly stated in the content\n` +
+      `✓ DO NOT add questions about information not in the provided text\n` +
+      `✓ All answer options must be derivable from the content\n` +
+      `✓ Explanations must reference specific parts of the provided content\n` +
+      `✓ If content is limited, create fewer high-quality questions\n\n` +
       `Return ONLY a valid JSON object with one key "quiz", an array of question objects.\n` +
       `Schema for each question:\n` +
       `{\n  "question": "question text",\n  "options": ["option A", "option B", "option C", "option D"],\n  "correctIndex": 0,\n  "explanation": "detailed explanation of why this answer is correct and why others are wrong"\n}\n` +
@@ -554,7 +588,7 @@ export class OpenRouterAPI {
     console.log('[OpenRouterAPI] Starting flashcard generation, content length:', content.length, 'cards:', cardCount);
     
     const estimatedTokens = estimateTokenCount(content);
-    const needsChunking = estimatedTokens > 3000;
+    const needsChunking = estimatedTokens > 4000; // Larger threshold for better efficiency
     
     console.log('[OpenRouterAPI] Estimated tokens:', estimatedTokens, 'needs chunking:', needsChunking);
 
@@ -593,9 +627,10 @@ export class OpenRouterAPI {
     console.log('[OpenRouterAPI] Starting chunked generation');
     onProgress?.(5, 'Preparing content chunks...');
     const chunks = chunkText(content, {
-      maxChunkSize: 4000,
-      overlapSize: 100,
+      maxChunkSize: 4000, // Smaller chunks for better quality
+      overlapSize: 500,   // More overlap for context
       preserveParagraphs: true,
+      adaptiveChunking: true,
     });
 
     const cardsPerChunk = Math.ceil(cardCount / chunks.length);
@@ -638,6 +673,12 @@ export class OpenRouterAPI {
   private async generateSingleFlashcardSet(content: string, cardCount: number): Promise<string> {
     const systemPrompt =
       `You are an expert at creating educational flashcards. From the provided content, create clear, concise Q&A pairs.\n\n` +
+      `CRITICAL ANTI-HALLUCINATION RULES:\n` +
+      `✓ Create flashcards ONLY from facts explicitly in the provided content\n` +
+      `✓ DO NOT add information not present in the source text\n` +
+      `✓ Answers must be directly supported by the content\n` +
+      `✓ Hints should reference specific parts of the content\n` +
+      `✓ If content is limited, create fewer high-quality cards\n\n` +
       `Return ONLY a valid JSON object with one key "flashcards", an array of cards.\n` +
       `Each card has "question" (front), "answer" (back), and "hint" (optional) keys.\n` +
       `No markdown, no code fences, no extra text. Focus on key concepts and facts.`;

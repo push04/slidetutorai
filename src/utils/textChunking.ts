@@ -27,8 +27,8 @@ export function chunkText(
   options: ChunkOptions = {}
 ): TextChunk[] {
   const {
-    maxChunkSize = 3500, // Smaller chunks for better rate limit management
-    overlapSize = 300,   // Larger overlap for better context preservation
+    maxChunkSize = 4000, // Reduced for better AI processing quality
+    overlapSize = 500,   // Increased overlap for better context preservation
     preserveParagraphs = true,
     adaptiveChunking = true,
   } = options;
@@ -166,25 +166,40 @@ export function estimateTokenCount(text: string): number {
  * Merge chunked results intelligently
  * Removes duplicate content from overlap regions
  */
-export function mergeChunkedResults(results: string[]): string {
+export function mergeChunkedResults(results: string[], type: 'lesson' | 'other' = 'lesson'): string {
   if (results.length === 0) return '';
   if (results.length === 1) return results[0];
 
-  // For lesson-type content, concatenate with section breaks
-  return results
-    .map((result, index) => {
-      if (index === 0) return result;
-      
-      // Remove duplicate headers if present
+  if (type === 'lesson') {
+    // For lessons, merge with better deduplication
+    const merged: string[] = [];
+    const seenHeaders = new Set<string>();
+    
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
       const lines = result.split('\n');
-      const firstNonEmptyLine = lines.findIndex(line => line.trim().length > 0);
+      const filteredLines: string[] = [];
       
-      // If the first line is a duplicate header, skip it
-      if (firstNonEmptyLine >= 0 && lines[firstNonEmptyLine].startsWith('#')) {
-        return lines.slice(firstNonEmptyLine + 1).join('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        
+        // Skip duplicate headers
+        if (trimmed.startsWith('#')) {
+          if (seenHeaders.has(trimmed)) {
+            continue;
+          }
+          seenHeaders.add(trimmed);
+        }
+        
+        filteredLines.push(line);
       }
       
-      return result;
-    })
-    .join('\n\n---\n\n');
+      merged.push(filteredLines.join('\n'));
+    }
+    
+    return merged.join('\n\n---\n\n');
+  }
+  
+  // For other types, simple concatenation
+  return results.join('\n\n');
 }

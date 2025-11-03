@@ -66,9 +66,9 @@ interface UploadManagerProps {
 // ================================================================================================
 
 const UPLOADER_CONFIG = {
-  maxFileSizeMB: 50,
+  maxFileSizeMB: 200,
   maxFiles: 20,
-  concurrency: 3,
+  concurrency: 2,
   allowedMimeTypes: new Set([
     "application/pdf",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -306,8 +306,11 @@ export const UploadManager: React.FC<UploadManagerProps> = ({
   /** Main worker function for a single file upload. */
   const uploadWorker = useCallback(async (entry: UploadEntry) => {
     try {
-      const onProgress = (percent: number) => {
+      const onProgress = (percent: number, message?: string, estimatedTime?: number) => {
         dispatch(uploaderActions.updateProgress(entry.tempId, percent));
+        if (message) {
+          console.log(`[Upload ${entry.file.name}] ${percent}% - ${message}${estimatedTime ? ` (${estimatedTime}s remaining)` : ''}`);
+        }
       };
       
       const clientHint = await detectFileType(entry.file);
@@ -359,6 +362,12 @@ export const UploadManager: React.FC<UploadManagerProps> = ({
         if (file.size === 0) return { error: "File is empty (0 bytes)." };
         if (!UPLOADER_CONFIG.allowedMimeTypes.has(file.type) && !/\.(pdf|pptx|ppt)$/i.test(file.name)) return { error: "Unsupported file type." };
         if (file.size > maxFileSizeMB * 1024 * 1024) return { error: `Exceeds ${maxFileSizeMB}MB limit.` };
+        
+        const fileSizeMB = file.size / 1024 / 1024;
+        if (fileSizeMB > 100) {
+          console.warn(`[Upload] Large file detected: ${file.name} (${fileSizeMB.toFixed(2)}MB). Processing may take several minutes.`);
+        }
+        
         return {
             tempId: genTempId(file), file, status: "pending", progress: 0, controller: new AbortController()
         };
