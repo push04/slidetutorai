@@ -24,8 +24,10 @@ import { StudyTimer } from './components/StudyTimer';
 import { VideoToLesson } from './components/VideoToLesson';
 import { ImageRecognition } from './components/ImageRecognition';
 import { InvestorPanel } from './components/InvestorPanel';
+import { AITutor } from './components/AITutor';
+import { PricingPayment } from './components/PricingPayment';
 
-export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'investors' | 'settings' | 'ai-tutor' | 'study-timer' | 'image-recognition';
+export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'investors' | 'settings' | 'ai-tutor' | 'study-timer' | 'image-recognition' | 'pricing' | 'voice-tutor';
 
 /**
  * The main application component.
@@ -125,12 +127,14 @@ function AppContent() {
     flashcards: <FlashcardManager uploads={uploads as Upload[]} apiKey={apiKey} />,
     chat: <ChatInterface uploads={uploads as Upload[]} apiKey={apiKey} />,
     'ai-tutor': <SocraticTutor apiKey={apiKey} />,
+    'voice-tutor': <AITutor />,
     'study-timer': (
       <StudyTimer
         onSessionComplete={() => {}}
       />
     ),
     investors: <InvestorPanel />,
+    pricing: <PricingPayment />,
     settings: <Settings uploads={uploads as Upload[]} />,
   };
 
