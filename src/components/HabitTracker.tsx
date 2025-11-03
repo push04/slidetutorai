@@ -75,15 +75,13 @@ export function HabitTracker() {
     toast.success('Habit added!');
   };
 
-  const toggleHabit = (id: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    
+  const toggleHabitForDate = (id: string, date: string) => {
     setHabits(habits.map(h => {
       if (h.id === id) {
-        const isCompleted = h.completedDates.includes(today);
+        const isCompleted = h.completedDates.includes(date);
         const newCompletedDates = isCompleted
-          ? h.completedDates.filter(d => d !== today)
-          : [...h.completedDates, today];
+          ? h.completedDates.filter(d => d !== date)
+          : [...h.completedDates, date];
 
         // Calculate streak
         let streak = 0;
@@ -100,21 +98,32 @@ export function HabitTracker() {
           }
         }
 
-        // Show encouraging messages
-        if (!isCompleted) {
-          if (streak === 1) {
-            toast.success('Great start! 🎉');
-          } else if (streak === 7) {
-            toast.success('Amazing! 7-day streak! 🔥');
-          } else if (streak === 30) {
-            toast.success('Incredible! 30-day streak! 🏆');
-          } else if (streak > 0 && streak % 10 === 0) {
-            toast.success(`Wow! ${streak}-day streak! Keep it up! 💪`);
+        // Show encouraging messages for the date being marked
+        const isCurrentlyCompleted = h.completedDates.includes(date);
+        if (!isCurrentlyCompleted) {
+          const dateObj = new Date(date);
+          const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          if (date === new Date().toISOString().split('T')[0]) {
+            // Today
+            if (streak === 1) {
+              toast.success('Great start! 🎉');
+            } else if (streak === 7) {
+              toast.success('Amazing! 7-day streak! 🔥');
+            } else if (streak === 30) {
+              toast.success('Incredible! 30-day streak! 🏆');
+            } else if (streak > 0 && streak % 10 === 0) {
+              toast.success(`Wow! ${streak}-day streak! Keep it up! 💪`);
+            } else {
+              toast.success(`Day ${streak} complete! 🎯`);
+            }
           } else {
-            toast.success(`Day ${streak} complete! 🎯`);
+            // Past date
+            toast.success(`Marked ${dateStr} complete! Streak: ${streak} 🎯`);
           }
         } else {
-          toast('Habit unmarked', { icon: '↩️' });
+          const dateObj = new Date(date);
+          const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          toast(`${dateStr} unmarked`, { icon: '↩️' });
         }
 
         return { ...h, completedDates: newCompletedDates, streak };
@@ -205,15 +214,18 @@ export function HabitTracker() {
               />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">Goal</label>
+                  <label className="block text-sm font-semibold text-foreground mb-2">Goal Frequency</label>
                   <select
                     value={newHabit.goal}
                     onChange={(e) => setNewHabit({...newHabit, goal: e.target.value})}
                     className="w-full px-4 py-3 glass-card border border-border/40 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
+                    <option value="daily">Daily (Every Day)</option>
+                    <option value="weekly">Weekly (Once a Week)</option>
                   </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {newHabit.goal === 'daily' ? 'Track this habit every day' : 'Track at least once per week'}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-2">Color</label>
@@ -238,6 +250,16 @@ export function HabitTracker() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Info Card */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4">
+            <p className="text-sm text-foreground">
+              💡 <strong>Tip:</strong> Click on any past day to mark it complete (future days are disabled). 
+              Today is highlighted with a ring. Weekly habits need at least one completion per week!
+            </p>
           </CardContent>
         </Card>
 
@@ -280,20 +302,23 @@ export function HabitTracker() {
                     {last7Days.map(date => {
                       const isCompleted = habit.completedDates.includes(date);
                       const isToday = date === today;
+                      const isPast = date < today;
+                      const isFuture = date > today;
                       const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'short' });
                       
                       return (
                         <button
                           key={date}
-                          onClick={() => toggleHabit(habit.id)}
-                          disabled={!isToday}
+                          onClick={() => !isFuture && toggleHabitForDate(habit.id, date)}
+                          disabled={isFuture}
                           className={cn(
                             'flex-1 p-3 rounded-xl transition-all',
                             isCompleted
                               ? `bg-gradient-to-r ${habit.color} text-white shadow-lg`
                               : 'glass-card border border-border/40 hover:border-primary/50',
-                            !isToday && 'cursor-default',
-                            isToday && !isCompleted && 'hover:scale-105'
+                            isFuture && 'opacity-50 cursor-not-allowed',
+                            !isFuture && 'hover:scale-105 cursor-pointer',
+                            isToday && 'ring-2 ring-primary'
                           )}
                         >
                           <div className="text-center">
@@ -303,6 +328,7 @@ export function HabitTracker() {
                             ) : (
                               <div className="w-6 h-6 mx-auto rounded-full border-2 border-current"></div>
                             )}
+                            {isToday && <div className="text-xs mt-1 text-primary font-bold">Today</div>}
                           </div>
                         </button>
                       );

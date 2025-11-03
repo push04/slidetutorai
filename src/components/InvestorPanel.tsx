@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  IndianRupee, Rocket, Users, Brain, Zap, Globe, Award, Mail, Send,
+  IndianRupee, Rocket, Users, Brain, Zap, Globe, Award, Send,
   Sparkles, BarChart3, Lock, Smartphone, BookOpen, MessageSquare,
   Check, Star, TrendingUp, Target, Heart, X, Download, ArrowRight
 } from 'lucide-react';
@@ -165,7 +165,7 @@ export function InvestorPanel() {
       }
     } catch (error) {
       console.error('Payment confirmation error:', error);
-      toast.error('Submission failed. Please email us at invest@slidetutor.ai');
+      toast.error('Submission failed. Please email us at slidetutorai@gmail.com');
     } finally {
       setIsSubmitting(false);
     }
@@ -173,8 +173,8 @@ export function InvestorPanel() {
 
   return (
     <>
-      {/* Hidden Netlify form */}
-      <form name="investor-payment-confirmation" netlify="true" netlify-honeypot="bot-field" hidden>
+      {/* Hidden Netlify form - Netlify detects this at build time */}
+      <form name="investor-payment-confirmation" data-netlify="true" data-netlify-honeypot="bot-field" hidden>
         <input type="text" name="tier" />
         <input type="text" name="bankName" />
         <input type="text" name="transactionLast4" />

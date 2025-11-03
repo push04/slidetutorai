@@ -8,6 +8,9 @@ import { Card, CardContent } from './enhanced/Card';
 import { Button } from './enhanced/Button';
 import toast from 'react-hot-toast';
 import { cn } from '../lib/utils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 
 interface Message {
   id: string;
@@ -25,13 +28,20 @@ interface Language {
 
 const LANGUAGES: Language[] = [
   { code: 'en', name: 'English', flag: '🇬🇧', voiceLang: 'en-US' },
-  { code: 'es', name: 'Español', flag: '🇪🇸', voiceLang: 'es-ES' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷', voiceLang: 'fr-FR' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪', voiceLang: 'de-DE' },
-  { code: 'hi', name: 'हिन्दी', flag: '🇮🇳', voiceLang: 'hi-IN' },
-  { code: 'zh', name: '中文', flag: '🇨🇳', voiceLang: 'zh-CN' },
-  { code: 'ar', name: 'العربية', flag: '🇸🇦', voiceLang: 'ar-SA' },
-  { code: 'ja', name: '日本語', flag: '🇯🇵', voiceLang: 'ja-JP' },
+  { code: 'hi', name: 'हिन्दी (Hindi)', flag: '🇮🇳', voiceLang: 'hi-IN' },
+  { code: 'es', name: 'Español (Spanish)', flag: '🇪🇸', voiceLang: 'es-ES' },
+  { code: 'fr', name: 'Français (French)', flag: '🇫🇷', voiceLang: 'fr-FR' },
+  { code: 'de', name: 'Deutsch (German)', flag: '🇩🇪', voiceLang: 'de-DE' },
+  { code: 'zh', name: '中文 (Chinese)', flag: '🇨🇳', voiceLang: 'zh-CN' },
+  { code: 'ja', name: '日本語 (Japanese)', flag: '🇯🇵', voiceLang: 'ja-JP' },
+  { code: 'ko', name: '한국어 (Korean)', flag: '🇰🇷', voiceLang: 'ko-KR' },
+  { code: 'ar', name: 'العربية (Arabic)', flag: '🇸🇦', voiceLang: 'ar-SA' },
+  { code: 'pt', name: 'Português (Portuguese)', flag: '🇧🇷', voiceLang: 'pt-BR' },
+  { code: 'ru', name: 'Русский (Russian)', flag: '🇷🇺', voiceLang: 'ru-RU' },
+  { code: 'it', name: 'Italiano (Italian)', flag: '🇮🇹', voiceLang: 'it-IT' },
+  { code: 'tr', name: 'Türkçe (Turkish)', flag: '🇹🇷', voiceLang: 'tr-TR' },
+  { code: 'pl', name: 'Polski (Polish)', flag: '🇵🇱', voiceLang: 'pl-PL' },
+  { code: 'nl', name: 'Nederlands (Dutch)', flag: '🇳🇱', voiceLang: 'nl-NL' },
 ];
 
 const QUICK_PROMPTS = [
@@ -70,6 +80,17 @@ export function ProfessionalAICoach() {
     const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
     if (envKey && envKey !== '') {
       setApiKey(envKey);
+    }
+
+    // Load conversation history from localStorage
+    try {
+      const saved = localStorage.getItem('ai-coach-messages');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
+      }
+    } catch (error) {
+      console.error('Failed to load conversation history:', error);
     }
 
     if ('speechSynthesis' in window) {
@@ -152,12 +173,25 @@ export function ProfessionalAICoach() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    
+    // Save or clear conversation history in localStorage
+    try {
+      if (messages.length > 0) {
+        localStorage.setItem('ai-coach-messages', JSON.stringify(messages));
+      } else {
+        localStorage.removeItem('ai-coach-messages');
+      }
+    } catch (error) {
+      console.error('Failed to save/clear conversation history:', error);
+    }
   }, [messages, streamingMessage]);
 
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
-    if (!apiKey) {
-      toast.error('API key not configured');
+    if (!apiKey || apiKey.trim() === '') {
+      toast.error('⚠️ OpenRouter API key not found! Please set VITE_OPENROUTER_API_KEY in your environment.', {
+        duration: 5000,
+      });
       return;
     }
 
@@ -182,9 +216,14 @@ export function ProfessionalAICoach() {
       const freeModels = [
         'meta-llama/llama-3.3-70b-instruct:free',
         'deepseek/deepseek-r1:free',
-        'meta-llama/llama-3.1-8b-instruct:free',
+        'google/gemini-2.0-flash-exp:free',
+        'qwen/qwen-2.5-72b-instruct:free',
+        'meta-llama/llama-3.1-70b-instruct:free',
         'mistralai/mistral-7b-instruct:free',
-        'google/gemini-2.0-flash-exp:free'
+        'meta-llama/llama-3.1-8b-instruct:free',
+        'qwen/qwen-2.5-7b-instruct:free',
+        'google/gemma-2-9b-it:free',
+        'microsoft/phi-4:free',
       ];
 
       const systemPrompt = {
@@ -220,6 +259,7 @@ Remember: You're empowering students to truly understand and master topics!`
 
       let responseReceived = false;
       let fullResponse = '';
+      let lastError: { status: number; message: string } | null = null;
 
       for (const model of freeModels) {
         try {
@@ -246,6 +286,13 @@ Remember: You're empowering students to truly understand and master topics!`
           });
 
           if (!response.ok) {
+            const errorBody = await response.text().catch(() => '');
+            console.warn(`Model ${model} failed with status ${response.status}:`, errorBody);
+            
+            // Capture 401 errors specially
+            if (response.status === 401) {
+              lastError = { status: 401, message: errorBody };
+            }
             continue;
           }
 
@@ -293,7 +340,12 @@ Remember: You're empowering students to truly understand and master topics!`
       }
 
       if (!responseReceived || !fullResponse) {
-        throw new Error('All AI models are currently unavailable. Please try again in a moment.');
+        // Provide specific error message for 401 (invalid API key)
+        if (lastError && lastError.status === 401) {
+          throw new Error('🔑 Invalid API Key!\n\nYour OpenRouter API key is not valid. Please:\n\n1. Go to https://openrouter.ai/\n2. Sign up or log in\n3. Generate a new API key\n4. Set it in your Replit Secrets as VITE_OPENROUTER_API_KEY\n5. Restart the workflow\n\nNeed help? Visit OpenRouter documentation.');
+        }
+        
+        throw new Error('❌ Unable to get AI response. Please check:\n1. Your API key is valid\n2. You have internet connection\n3. OpenRouter service is available\n\nTry again in a moment!');
       }
 
       const assistantMessage: Message = {
@@ -344,9 +396,22 @@ Remember: You're empowering students to truly understand and master topics!`
     synthRef.current.speak(utterance);
   };
 
-  const toggleListening = () => {
+  const requestMicrophonePermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const toggleListening = async () => {
     if (!recognitionRef.current) {
-      toast.error('Speech recognition not supported');
+      toast.error('Speech recognition not supported in this browser', {
+        duration: 4000,
+        icon: '🌐',
+      });
       return;
     }
 
@@ -355,13 +420,27 @@ Remember: You're empowering students to truly understand and master topics!`
       setIsListening(false);
       setAlwaysOn(false);
     } else {
+      const hasPermission = await requestMicrophonePermission();
+      if (!hasPermission) {
+        toast.error('Please allow microphone access to use voice features', {
+          duration: 5000,
+          icon: '🎤',
+        });
+        return;
+      }
+      
       try {
         recognitionRef.current.start();
         setIsListening(true);
-        toast.success('🎤 Listening...');
+        toast.success('🎤 Listening... Speak naturally!', {
+          duration: 3000,
+          icon: '✨',
+        });
       } catch (error) {
         console.error('Failed to start recognition:', error);
-        toast.error('Failed to start voice recognition');
+        toast.error('Failed to start voice recognition. Please try again.', {
+          duration: 4000,
+        });
       }
     }
   };
@@ -374,6 +453,9 @@ Remember: You're empowering students to truly understand and master topics!`
   };
 
   const clearConversation = () => {
+    if (messages.length > 0 && !confirm('Clear conversation history? This cannot be undone.')) {
+      return;
+    }
     setMessages([]);
     setStreamingMessage('');
     setShowQuickPrompts(true);
@@ -405,6 +487,29 @@ Remember: You're empowering students to truly understand and master topics!`
   return (
     <div className="min-h-screen bg-background p-4 pb-20">
       <div className="max-w-7xl mx-auto">
+        {/* API Key Warning Banner */}
+        {(!apiKey || apiKey.trim() === '') && (
+          <div className="glass-card p-5 rounded-2xl border-2 border-yellow-500/50 bg-yellow-500/10 mb-6 animate-in fade-in slide-in-from-top duration-500">
+            <div className="flex flex-col md:flex-row items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-yellow-500 mb-2">API Key Not Configured</h3>
+                <p className="text-sm text-foreground/80 mb-3">
+                  To use the AI Coach, you need to set up your OpenRouter API key:
+                </p>
+                <ol className="text-sm text-foreground space-y-2 ml-4 list-decimal marker:text-yellow-500 marker:font-bold">
+                  <li>Visit <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">openrouter.ai</a> and create a free account</li>
+                  <li>Generate a new API key from your dashboard</li>
+                  <li>Add it to Replit Secrets as <code className="px-2 py-1 bg-muted rounded font-mono text-xs font-bold">VITE_OPENROUTER_API_KEY</code></li>
+                  <li>Restart the workflow to apply changes</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Ultra-Professional Header */}
         <div className="glass-card rounded-3xl border border-border/40 p-6 mb-6 bg-gradient-to-br from-primary/5 via-purple-500/5 to-blue-500/5 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-purple-500/10 animate-pulse"></div>
@@ -422,7 +527,7 @@ Remember: You're empowering students to truly understand and master topics!`
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">
                     Professional AI Coach
                   </h1>
-                  <p className="text-muted-foreground mt-1">Advanced AI tutor with real-time streaming • 8 Languages</p>
+                  <p className="text-muted-foreground mt-1">Advanced AI tutor with real-time streaming • 15 Languages • 10+ Free AI Models</p>
                 </div>
               </div>
 
@@ -597,12 +702,40 @@ Remember: You're empowering students to truly understand and master topics!`
                             : "glass-card border border-border/40"
                         )}
                       >
-                        <div className={cn(
-                          "prose prose-sm max-w-none",
-                          message.role === 'user' ? "prose-invert" : "prose-invert"
-                        )}>
-                          {message.content}
-                        </div>
+                        {message.role === 'user' ? (
+                          <div className="text-white whitespace-pre-wrap">
+                            {message.content}
+                          </div>
+                        ) : (
+                          <div className="prose prose-sm prose-invert max-w-none">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeHighlight]}
+                              components={{
+                                code: ({node, inline, className, children, ...props}: any) => {
+                                  return !inline ? (
+                                    <pre className={cn("rounded-lg p-3 bg-muted/30 overflow-x-auto my-2", className)}>
+                                      <code className={className} {...props}>
+                                        {children}
+                                      </code>
+                                    </pre>
+                                  ) : (
+                                    <code className="px-1.5 py-0.5 rounded bg-muted/30 text-primary" {...props}>
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                                a: ({children, href}: any) => (
+                                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                    {children}
+                                  </a>
+                                ),
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                        )}
                         {message.role === 'assistant' && (
                           <button
                             onClick={() => copyMessage(message.content)}
@@ -635,7 +768,27 @@ Remember: You're empowering students to truly understand and master topics!`
                     </div>
                     <div className="glass-card border border-border/40 px-6 py-4 rounded-2xl shadow-lg max-w-[75%]">
                       <div className="prose prose-sm prose-invert max-w-none">
-                        {streamingMessage}
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeHighlight]}
+                          components={{
+                            code: ({node, inline, className, children, ...props}: any) => {
+                              return !inline ? (
+                                <pre className={cn("rounded-lg p-3 bg-muted/30 overflow-x-auto my-2", className)}>
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                </pre>
+                              ) : (
+                                <code className="px-1.5 py-0.5 rounded bg-muted/30 text-primary" {...props}>
+                                  {children}
+                                </code>
+                              );
+                            },
+                          }}
+                        >
+                          {streamingMessage}
+                        </ReactMarkdown>
                         <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse"></span>
                       </div>
                     </div>
