@@ -36,6 +36,14 @@ export function extractVideoId(url: string): string | null {
   return null;
 }
 
+const createTimeoutSignal = (ms: number): AbortSignal => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), ms);
+
+  controller.signal.addEventListener('abort', () => clearTimeout(timeoutId));
+  return controller.signal;
+};
+
 /**
  * Fetch video metadata from multiple sources with fallbacks
  */
@@ -46,7 +54,7 @@ async function fetchVideoMetadata(videoId: string): Promise<{ title: string; des
   // Try YouTube oEmbed API first (most reliable)
   try {
     const apiUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-    const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl, { signal: createTimeoutSignal(8000) });
     if (response.ok) {
       const data = await response.json();
       title = data.title || title;
@@ -55,12 +63,14 @@ async function fetchVideoMetadata(videoId: string): Promise<{ title: string; des
       return { title, description };
     }
   } catch (error) {
-    console.log('[YouTube] oEmbed failed, trying alternative...');
+    console.warn('[YouTube] oEmbed failed, trying alternative...', error);
   }
 
   // Fallback: Try noembed.com
   try {
-    const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+    const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`, {
+      signal: createTimeoutSignal(8000),
+    });
     if (response.ok) {
       const data = await response.json();
       title = data.title || title;
@@ -69,7 +79,7 @@ async function fetchVideoMetadata(videoId: string): Promise<{ title: string; des
       return { title, description };
     }
   } catch (error) {
-    console.log('[YouTube] noembed failed');
+    console.warn('[YouTube] noembed failed', error);
   }
 
   return { title, description };
@@ -86,7 +96,7 @@ async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: st
       name: 'supadata.ai',
       fetch: async () => {
         const response = await fetch(`https://supadata.ai/youtube-transcript-api?videoId=${videoId}`, {
-          signal: AbortSignal.timeout(10000) // 10s timeout
+          signal: createTimeoutSignal(10000)
         });
         if (!response.ok) return null;
         const data = await response.json();
@@ -100,7 +110,7 @@ async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: st
       name: 'kome.ai (free transcript API)',
       fetch: async () => {
         const response = await fetch(`https://kome.ai/api/tools/youtube-transcripts?url=https://www.youtube.com/watch?v=${videoId}`, {
-          signal: AbortSignal.timeout(10000)
+          signal: createTimeoutSignal(10000)
         });
         if (!response.ok) return null;
         const data = await response.json();
@@ -114,7 +124,7 @@ async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: st
       name: 'youtubetranscript.com',
       fetch: async () => {
         const response = await fetch(`https://youtubetranscript.com/api/transcript?videoId=${videoId}`, {
-          signal: AbortSignal.timeout(10000)
+          signal: createTimeoutSignal(10000)
         });
         if (!response.ok) return null;
         const data = await response.json();
@@ -129,7 +139,7 @@ async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: st
       fetch: async () => {
         // Use a CORS proxy to fetch captions directly
         const response = await fetch(`https://corsproxy.io/?https://www.youtube.com/watch?v=${videoId}`, {
-          signal: AbortSignal.timeout(15000)
+          signal: createTimeoutSignal(15000)
         }).catch(() => null);
         if (!response || !response.ok) return null;
         const html = await response.text();
@@ -142,7 +152,7 @@ async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: st
             // Get the first available caption track URL
             const captionUrl = tracks[0].baseUrl;
             const captionResponse = await fetch(captionUrl, {
-              signal: AbortSignal.timeout(10000)
+              signal: createTimeoutSignal(10000)
             });
             if (captionResponse.ok) {
               const captionXml = await captionResponse.text();
@@ -159,10 +169,46 @@ async function fetchTranscriptWithFallbacks(videoId: string): Promise<{ text: st
       }
     },
     {
+      name: 'jina.ai CORS mirror',
+      fetch: async () => {
+        const response = await fetch(`https://r.jina.ai/https://www.youtube.com/watch?v=${videoId}`, {
+          signal: createTimeoutSignal(15000),
+        }).catch(() => null);
+
+        if (!response || !response.ok) return null;
+
+        const html = await response.text();
+        const captionMatch = html.match(/"captionTracks":\s*(\[.*?\])/);
+        if (!captionMatch) return null;
+
+        const tracks = JSON.parse(captionMatch[1]);
+        if (!Array.isArray(tracks) || tracks.length === 0) return null;
+
+        // Prefer an English track if available
+        const preferredTrack = tracks.find((t: any) => t.languageCode?.startsWith('en')) || tracks[0];
+        if (!preferredTrack?.baseUrl) return null;
+
+        const captionResponse = await fetch(preferredTrack.baseUrl, {
+          signal: createTimeoutSignal(10000),
+        }).catch(() => null);
+
+        if (!captionResponse || !captionResponse.ok) return null;
+        const captionXml = await captionResponse.text();
+        const textMatches = captionXml.matchAll(/<text[^>]*>([^<]+)<\/text>/g);
+        const texts = Array.from(textMatches).map(m => m[1]);
+
+        if (texts.length > 0) {
+          return texts.join(' ').replace(/&amp;#39;/g, "'").replace(/&amp;/g, '&');
+        }
+
+        return null;
+      },
+    },
+    {
       name: 'invid.io API (alternative endpoint)',
       fetch: async () => {
         const response = await fetch(`https://invid.io/api/youtube-transcript/${videoId}`, {
-          signal: AbortSignal.timeout(10000)
+          signal: createTimeoutSignal(10000)
         }).catch(() => null);
         if (!response || !response.ok) return null;
         const data = await response.json();

@@ -3,10 +3,11 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storage } from '../lib/storage';
+import { type Upload } from '../services/FileProcessor';
 
 // Uploads
 export function useUploads() {
-  return useQuery({
+  return useQuery<Upload[]>({
     queryKey: ['uploads'],
     queryFn: () => storage.getUploads(),
   });
@@ -14,9 +15,9 @@ export function useUploads() {
 
 export function useCreateUpload() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (data: any) => storage.createUpload(data),
+    mutationFn: (data: Upload) => storage.createUpload(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['uploads'] });
     },
@@ -25,9 +26,9 @@ export function useCreateUpload() {
 
 export function useUpdateUpload() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => storage.updateUpload(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<Upload> }) => storage.updateUpload(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['uploads'] });
     },
@@ -36,7 +37,7 @@ export function useUpdateUpload() {
 
 export function useDeleteUpload() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (id: string) => storage.deleteUpload(id),
     onSuccess: () => {
