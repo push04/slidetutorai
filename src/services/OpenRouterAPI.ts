@@ -281,13 +281,23 @@ export class OpenRouterAPI {
     onProgress?.(10, `Processing ${chunks.length} chunks...`);
     const chunkResults: string[] = [];
     let previousSummary = '';
+    const lessonStart = performance.now();
+
+    const calculateEta = (completedChunks: number) => {
+      if (completedChunks === 0) return undefined;
+      const elapsedMs = performance.now() - lessonStart;
+      const avgPerChunk = elapsedMs / completedChunks;
+      const remainingMs = Math.max(0, (chunks.length - completedChunks) * avgPerChunk);
+      return Math.round(remainingMs / 1000);
+    };
 
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const progressPercent = 10 + ((i + 1) / chunks.length) * 80; // 10-90%
       onProgress?.(
         Math.round(progressPercent),
-        `Processing chunk ${i + 1} of ${chunks.length}...`
+        `Processing chunk ${i + 1} of ${chunks.length}...`,
+        calculateEta(i)
       );
 
       // Build context hint with previous chunk summary for continuity
@@ -523,15 +533,24 @@ export class OpenRouterAPI {
 
     const questionsPerChunk = Math.ceil(questionCount / chunks.length);
     onProgress?.(10, `Generating ${questionCount} questions from ${chunks.length} chunks...`);
-    
+
     const allQuestions: any[] = [];
+    const quizStart = performance.now();
+    const calculateEta = (completedChunks: number) => {
+      if (completedChunks === 0) return undefined;
+      const elapsedMs = performance.now() - quizStart;
+      const avgPerChunk = elapsedMs / completedChunks;
+      const remainingMs = Math.max(0, (chunks.length - completedChunks) * avgPerChunk);
+      return Math.round(remainingMs / 1000);
+    };
 
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const progressPercent = 10 + ((i + 1) / chunks.length) * 85;
       onProgress?.(
         Math.round(progressPercent),
-        `Processing chunk ${i + 1} of ${chunks.length}...`
+        `Processing chunk ${i + 1} of ${chunks.length}...`,
+        calculateEta(i)
       );
 
       const chunkQuiz = await this.generateSingleQuiz(chunk.text, questionsPerChunk);
@@ -653,8 +672,16 @@ export class OpenRouterAPI {
     const cardsPerChunk = Math.ceil(cardCount / chunks.length);
     console.log('[OpenRouterAPI] Split into', chunks.length, 'chunks,', cardsPerChunk, 'cards per chunk');
     onProgress?.(10, `Generating ${cardCount} flashcards from ${chunks.length} chunks...`);
-    
+
     const allCards: any[] = [];
+    const flashcardStart = performance.now();
+    const calculateEta = (completedChunks: number) => {
+      if (completedChunks === 0) return undefined;
+      const elapsedMs = performance.now() - flashcardStart;
+      const avgPerChunk = elapsedMs / completedChunks;
+      const remainingMs = Math.max(0, (chunks.length - completedChunks) * avgPerChunk);
+      return Math.round(remainingMs / 1000);
+    };
 
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
@@ -662,7 +689,8 @@ export class OpenRouterAPI {
       console.log(`[OpenRouterAPI] Processing chunk ${i + 1}/${chunks.length}, progress: ${Math.round(progressPercent)}%`);
       onProgress?.(
         Math.round(progressPercent),
-        `Processing chunk ${i + 1} of ${chunks.length}...`
+        `Processing chunk ${i + 1} of ${chunks.length}...`,
+        calculateEta(i)
       );
 
       const chunkFlashcards = await this.generateSingleFlashcardSet(chunk.text, cardsPerChunk);

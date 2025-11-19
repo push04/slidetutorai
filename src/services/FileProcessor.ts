@@ -132,22 +132,52 @@ async function parsePptx(file: File): Promise<{ fullText: string; slideCount: nu
 // ================================================================================================
 
 class FileProcessor {
-  private processingStrategies: Record<string, (file: File) => Promise<{ fullText: string; slideCount: number }>> = {
-    'application/pdf': parsePdf,
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation': parsePptx,
+  private processingStrategies: Record<string, (file: File, signal?: AbortSignal) => Promise<{ fullText: string; slideCount: number }>> = {
+    'application/pdf': (file, signal) => {
+      if (signal?.aborted) {
+        throw new DOMException('Processing aborted', 'AbortError');
+      }
+      return parsePdf(file);
+    },
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': (file, signal) => {
+      if (signal?.aborted) {
+        throw new DOMException('Processing aborted', 'AbortError');
+      }
+      return parsePptx(file);
+    },
   };
 
-  public async processFile(file: File, onProgress?: (progress: number, message: string, estimatedTimeRemaining?: number) => void): Promise<Upload> {
+  public async processFile(
+    file: File,
+    options: {
+      onProgress?: (progress: number, message: string, estimatedTimeRemaining?: number) => void;
+      signal?: AbortSignal;
+    } = {}
+  ): Promise<Upload> {
+    const { onProgress, signal } = options;
+    let lastProgress = 0;
+    const emitProgress = (progress: number, message: string, etaSeconds?: number) => {
+      lastProgress = Math.min(99, Math.max(lastProgress, progress));
+      onProgress?.(lastProgress, message, etaSeconds);
+    };
+    const throwIfAborted = () => {
+      if (signal?.aborted) {
+        throw new DOMException('Processing aborted', 'AbortError');
+      }
+    };
+
+    throwIfAborted();
     // Check if this is a large file that needs special handling
     const isLargeFile = file.size > LARGE_FILE_SIZE_THRESHOLD;
     const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
     
     if (isPDF && isLargeFile) {
       console.log(`[FileProcessor] Large PDF detected (${(file.size / 1024 / 1024).toFixed(2)}MB), using advanced processor...`);
-      
+
       try {
         const storedUpload = await largeFileProcessor.processLargePDF(file, {
           onProgress,
+          signal,
           saveCheckpoints: true,
         });
         
@@ -168,7 +198,7 @@ class FileProcessor {
         throw error;
       }
     }
-    
+
     // Standard processing for smaller files
     const upload: Upload = {
       id: uuidv4(),
@@ -183,7 +213,8 @@ class FileProcessor {
     };
 
     try {
-      onProgress?.(5, 'Starting file processing...');
+      throwIfAborted();
+      emitProgress(5, 'Starting file processing...');
       
       let strategy = this.processingStrategies[file.type];
       
@@ -195,23 +226,26 @@ class FileProcessor {
         }
       }
 
-      onProgress?.(10, 'Extracting text...');
-      const { fullText, slideCount } = await strategy(file);
+      throwIfAborted();
+      emitProgress(18, 'Extracting text...');
+      const { fullText, slideCount } = await strategy(file, signal);
 
+      throwIfAborted();
       upload.fullText = fullText;
       upload.slideCount = slideCount;
       upload.processed = true;
       upload.indexed = true;
       upload.status = 'completed';
-      
+
       // Save to persistent storage
       await persistentStorage.saveUpload({
         ...upload,
         processingProgress: 100,
       });
-      
-      onProgress?.(100, 'Complete!', 0);
-      
+
+      throwIfAborted();
+      emitProgress(100, 'Complete!', 0);
+
     } catch (error) {
       console.error(`Failed to process file ${file.name}:`, error);
       upload.status = 'failed';

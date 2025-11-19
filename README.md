@@ -47,3 +47,10 @@ The publish directory is: `dist`
 - OpenRouter AI
 - TipTap Editor
 - Recharts
+
+## Credits
+- **Slidetutor** – Your AI copilot for turning raw content into polished lessons, quizzes, and flashcards in minutes.
+- **Founder:** Pushpal Sanyal
+- **Co-Founder:** Shrestha Sharan
+- **Co-Founder:** Rishi Singh
+- **Co-Founder:** Namonarayan Divli

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Search, Upload, BookOpen, Brain, Layers, MessageSquare, 
-  Settings, Home, TrendingUp, Target, Clock, Zap
+import {
+  Search, Upload, BookOpen, Brain, Layers, MessageSquare,
+  Settings, Home, TrendingUp, Target, Clock, Zap, HeartHandshake
 } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import type { TabType } from '../../App';
@@ -81,6 +81,14 @@ export function CommandPalette({ onNavigate, onClose, isOpen }: CommandPalettePr
       action: () => { onNavigate('settings'); onClose(); },
       category: 'Navigation',
       keywords: ['config', 'preferences', 'api'],
+    },
+    {
+      id: 'nav-credits',
+      label: 'Credits',
+      icon: HeartHandshake,
+      action: () => { onNavigate('credits'); onClose(); },
+      category: 'Navigation',
+      keywords: ['team', 'about', 'founders'],
     },
   ], [onNavigate, onClose]);
 

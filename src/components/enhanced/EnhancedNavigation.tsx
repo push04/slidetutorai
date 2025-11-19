@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, Upload, BookOpen, Brain, Layers, 
+import {
+  LayoutDashboard, Upload, BookOpen, Brain, Layers,
   MessageSquare, Settings, Sparkles,
   Clock, GraduationCap, Menu, X, Youtube, Scan,
-  Sun, Moon, TrendingUp, FileText, ListTodo, Target
+  Sun, Moon, TrendingUp, FileText, ListTodo, Target,
+  HeartHandshake, BadgeCheck
 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -195,6 +196,54 @@ function Sidebar({ isOpen, onClose, activeTab, onTabChange }: {
             </h3>
             <button
               onClick={() => {
+                onTabChange('credits');
+                onClose();
+              }}
+              className={cn(
+                'w-full px-3 py-3 rounded-xl flex items-center gap-3.5 transition-all duration-300 group relative overflow-hidden mb-3',
+                activeTab === 'credits'
+                  ? 'bg-gradient-to-r from-primary/15 via-primary/10 to-secondary/15 border border-primary/25 text-foreground shadow-lg shadow-primary/10'
+                  : 'hover:bg-gradient-to-r hover:from-muted/60 hover:via-muted/40 hover:to-muted/60 text-muted-foreground hover:text-foreground hover:border hover:border-border/50 hover:shadow-md'
+              )}
+            >
+              {activeTab === 'credits' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse opacity-50"></div>
+              )}
+
+              <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 relative',
+                activeTab === 'credits'
+                  ? 'bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/30 scale-105'
+                  : 'bg-gradient-to-br from-muted/60 to-muted/40 group-hover:from-muted group-hover:to-muted/80 group-hover:scale-110 group-hover:shadow-md'
+              )}>
+                {activeTab === 'credits' && (
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent"></div>
+                )}
+                <HeartHandshake className={cn(
+                  'w-5 h-5 relative z-10 transition-all duration-300',
+                  activeTab === 'credits' ? 'text-white' : 'text-muted-foreground group-hover:text-foreground'
+                )} />
+              </div>
+              <div className="flex-1 text-left relative z-10">
+                <div className={cn(
+                  "font-semibold text-sm tracking-tight transition-all duration-200",
+                  activeTab === 'credits' && "text-foreground"
+                )}>
+                  Credits
+                </div>
+                <div className={cn(
+                  "text-xs mt-0.5 transition-all duration-200",
+                  activeTab === 'credits' ? "text-muted-foreground/90" : "text-muted-foreground/60 group-hover:text-muted-foreground/80"
+                )}>
+                  Meet the SlideTutor team
+                </div>
+              </div>
+              {activeTab === 'credits' && (
+                <div className="w-1 h-8 rounded-full bg-gradient-to-b from-primary to-secondary shadow-lg shadow-primary/50"></div>
+              )}
+            </button>
+            <button
+              onClick={() => {
                 onTabChange('investors');
                 onClose();
               }}
@@ -294,6 +343,16 @@ function Sidebar({ isOpen, onClose, activeTab, onTabChange }: {
                 <div className="w-1 h-8 rounded-full bg-gradient-to-b from-slate-500 to-gray-600 shadow-lg shadow-slate-500/50"></div>
               )}
             </button>
+
+            <div className="mt-4 px-3 py-3 rounded-xl bg-gradient-to-br from-muted/70 via-muted/60 to-muted/80 border border-border/50 shadow-inner">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <BadgeCheck className="w-4 h-4 text-primary" />
+                SlideTutor v1.1
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Fresh updates: reliable lesson PDFs, tougher YouTube transcript fallbacks, polished AI Coach voice output, and Credits in the workspace.
+              </p>
+            </div>
           </div>
         </nav>
       </aside>

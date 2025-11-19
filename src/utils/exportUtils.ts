@@ -72,7 +72,11 @@ export function exportLessonAsPDF(content: string, filename: string) {
       <meta charset="utf-8">
       <style>
         @media print {
-          @page { margin: 2cm; }
+          @page {
+            margin: 18mm;
+            size: A4 portrait;
+          }
+          h1, h2, h3, h4, p, ul, ol, li, blockquote, pre, code { page-break-inside: avoid; }
         }
         body {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -82,6 +86,7 @@ export function exportLessonAsPDF(content: string, filename: string) {
           line-height: 1.7;
           color: #1a1a1a;
           background: white;
+          white-space: pre-wrap;
         }
         h1 {
           color: #2563eb;
@@ -148,14 +153,24 @@ export function exportLessonAsPDF(content: string, filename: string) {
           background: #eff6ff;
           padding: 16px 20px;
           border-radius: 4px;
+          page-break-inside: avoid;
         }
         ul, ol {
           margin: 16px 0;
           padding-left: 30px;
+          page-break-inside: avoid;
         }
         li {
           margin-bottom: 8px;
           line-height: 1.6;
+          word-break: break-word;
+        }
+        img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 12px 0;
+          page-break-inside: avoid;
         }
         .footer {
           margin-top: 60px;
@@ -174,15 +189,17 @@ export function exportLessonAsPDF(content: string, filename: string) {
       </div>
       <script>
         window.onload = () => {
+          window.focus();
           window.print();
           // Close after printing (or cancel)
-          setTimeout(() => window.close(), 500);
+          setTimeout(() => window.close(), 750);
         };
       </script>
     </body>
     </html>
   `);
   printWindow.document.close();
+  printWindow.focus();
 }
 
 /**

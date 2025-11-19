@@ -373,12 +373,25 @@ Remember: You're empowering students to truly understand and master topics!`
     }
   };
 
+  const normalizeForSpeech = (text: string) => {
+    return text
+      .replace(/```[\s\S]*?```/g, ' code block. ')
+      .replace(/`([^`]*)`/g, '$1')
+      .replace(/^#{1,6}\s*/gm, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+      .replace(/^[-*+]\s+/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   const speakText = (text: string) => {
     if (!synthRef.current) return;
-    
+
     synthRef.current.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
+
+    const utterance = new SpeechSynthesisUtterance(normalizeForSpeech(text));
     utterance.lang = selectedLanguage.voiceLang;
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
