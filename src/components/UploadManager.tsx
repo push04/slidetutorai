@@ -45,6 +45,8 @@ interface UploadEntry {
   progress: number; // 0-100
   status: UploadStatus;
   errorMessage?: string;
+  progressMessage?: string;
+  etaSeconds?: number;
   controller: AbortController;
 }
 
@@ -54,7 +56,7 @@ type ClientHint = { mime?: string; ext?: string; pipeline?: string };
 /** Props for the UploadManager component. */
 interface UploadManagerProps {
   uploads: Upload[];
-  onAddUpload: (file: File, opts: { signal: AbortSignal; clientHint: ClientHint; onProgress: (percent: number) => void }) => Promise<Upload>;
+  onAddUpload: (file: File, opts: { signal: AbortSignal; clientHint: ClientHint; onProgress: (percent: number, message?: string, etaSeconds?: number) => void }) => Promise<Upload>;
   onDeleteUpload: (id: string) => void;
   maxFileSizeMB?: number;
   maxFiles?: number;
@@ -82,6 +84,14 @@ const formatBytes = (bytes: number): string => {
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
+
+const formatEta = (seconds?: number): string | null => {
+  if (seconds == null || Number.isNaN(seconds)) return null;
+  const clamped = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(clamped / 60);
+  const secs = clamped % 60;
+  return `${minutes}:${secs.toString().padStart(2, '0')}`;
 };
 
 const genTempId = (file: File) => `tmp-${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).substring(2, 9)}`;
@@ -123,7 +133,7 @@ type UploaderState = {
 const uploaderActions = {
   add: (payload: UploadEntry[]) => ({ type: "ADD", payload } as const),
   updateStatus: (tempId: string, status: UploadStatus, errorMessage?: string) => ({ type: "UPDATE_STATUS", tempId, status, errorMessage } as const),
-  updateProgress: (tempId: string, progress: number) => ({ type: "UPDATE_PROGRESS", tempId, progress } as const),
+  updateProgress: (tempId: string, progress: number, message?: string, etaSeconds?: number) => ({ type: "UPDATE_PROGRESS", tempId, progress, message, etaSeconds } as const),
   remove: (tempId: string) => ({ type: "REMOVE", tempId } as const),
   retry: (tempId: string) => ({ type: "RETRY", tempId } as const),
   clearAll: () => ({ type: "CLEAR_ALL" } as const),
@@ -147,14 +157,23 @@ const uploaderReducer = (state: UploaderState, action: UploaderAction): Uploader
     case "UPDATE_PROGRESS":
       return {
         ...state,
-        entries: state.entries.map((e) => (e.tempId === action.tempId ? { ...e, progress: action.progress } : e)),
+        entries: state.entries.map((e) => (
+          e.tempId === action.tempId
+            ? {
+                ...e,
+                progress: Math.max(e.progress, Math.min(100, action.progress)),
+                progressMessage: action.message ?? e.progressMessage,
+                etaSeconds: action.etaSeconds ?? e.etaSeconds,
+              }
+            : e
+        )),
       };
     case "REMOVE":
       return { ...state, entries: state.entries.filter((e) => e.tempId !== action.tempId) };
     case "RETRY":
        return {
          ...state,
-         entries: state.entries.map((e) => (e.tempId === action.tempId ? { ...e, status: "pending", controller: new AbortController() } : e)),
+         entries: state.entries.map((e) => (e.tempId === action.tempId ? { ...e, status: "pending", progress: 0, progressMessage: undefined, etaSeconds: undefined, controller: new AbortController() } : e)),
        }
     case "CLEAR_ALL":
       state.entries.forEach(e => e.status === "uploading" && e.controller.abort());
@@ -221,7 +240,8 @@ const UploadDropzone = memo(({ onFilesAdded }: { onFilesAdded: (files: File[]) =
 });
 
 const FileListItem = memo(({ entry, onCancel, onRemove, onRetry }: { entry: UploadEntry; onCancel: () => void; onRemove: () => void; onRetry: () => void; }) => {
-    const { status, progress, file, errorMessage } = entry;
+    const { status, progress, file, errorMessage, progressMessage, etaSeconds } = entry;
+    const etaLabel = formatEta(etaSeconds);
     
     const getStatusInfo = () => {
         switch (status) {
@@ -245,10 +265,18 @@ const FileListItem = memo(({ entry, onCancel, onRemove, onRetry }: { entry: Uplo
                     <p className="font-medium text-foreground truncate" title={file.name}>{file.name}</p>
                     <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
                      { (status === 'uploading' || status === 'processing') && (
-                        <div className="mt-2 w-full bg-muted/30 rounded-full h-2">
-                            <div className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-300 shadow-sm shadow-primary/20" 
-                                style={{ width: `${progress}%` }}
-                                role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} />
+                        <div className="mt-2 w-full space-y-1">
+                            <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+                                <div className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-300 shadow-sm shadow-primary/20"
+                                    style={{ width: `${progress}%` }}
+                                    role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} />
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span className="truncate" title={progressMessage || 'Processing file...'}>
+                                  {progressMessage || 'Processing file...'}
+                                </span>
+                                {etaLabel && <span className="font-medium text-foreground">ETA {etaLabel}</span>}
+                            </div>
                         </div>
                      )}
                      {status === "error" && <p className="text-xs text-rose-600 dark:text-red-400 mt-1 truncate" title={errorMessage}>{errorMessage}</p>}
@@ -307,7 +335,7 @@ export const UploadManager: React.FC<UploadManagerProps> = ({
   const uploadWorker = useCallback(async (entry: UploadEntry) => {
     try {
       const onProgress = (percent: number, message?: string, estimatedTime?: number) => {
-        dispatch(uploaderActions.updateProgress(entry.tempId, percent));
+        dispatch(uploaderActions.updateProgress(entry.tempId, percent, message, estimatedTime));
         if (message) {
           console.log(`[Upload ${entry.file.name}] ${percent}% - ${message}${estimatedTime ? ` (${estimatedTime}s remaining)` : ''}`);
         }

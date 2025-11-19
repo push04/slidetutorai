@@ -14,6 +14,7 @@ export interface LargeFileOptions {
   onPageBatch?: (batchNumber: number, totalBatches: number) => void;
   batchSize?: number;
   saveCheckpoints?: boolean;
+  signal?: AbortSignal;
 }
 
 export class LargeFileProcessor {
@@ -28,8 +29,24 @@ export class LargeFileProcessor {
       onProgress,
       onPageBatch,
       batchSize = this.BATCH_SIZE,
-      saveCheckpoints = true
+      saveCheckpoints = true,
+      signal
     } = options;
+
+    let lastProgress = 0;
+    const progressTracker = {
+      emit: (progress: number, message: string, etaSeconds?: number) => {
+        lastProgress = Math.min(99, Math.max(lastProgress, progress));
+        onProgress?.(lastProgress, message, etaSeconds);
+      },
+    };
+
+    const throwIfAborted = () => {
+      if (signal?.aborted) {
+        const abortError = new DOMException('Processing aborted', 'AbortError');
+        throw abortError;
+      }
+    };
 
     const uploadId = uuidv4();
     const startTime = Date.now();
@@ -61,12 +78,14 @@ export class LargeFileProcessor {
     };
 
     try {
+      throwIfAborted();
       await persistentStorage.saveUpload(upload);
       await persistentStorage.saveProcessingJob(job);
-      
-      onProgress?.(1, 'Loading PDF...');
-      
+
+      progressTracker.emit(1, 'Loading PDF...');
+
       // Load PDF
+      throwIfAborted();
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({
         data: arrayBuffer,
@@ -87,22 +106,26 @@ export class LargeFileProcessor {
       job.estimatedEndTime = startTime + (estimatedSeconds * 1000);
       await persistentStorage.saveProcessingJob(job);
       
-      onProgress?.(2, `Processing ${numPages} pages...`, estimatedSeconds);
+      progressTracker.emit(2, `Processing ${numPages} pages...`, estimatedSeconds);
 
       const textChunks: string[] = [];
       const totalBatches = Math.ceil(numPages / batchSize);
       
       // Process in batches
+      let processedPages = 0;
       for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
+        throwIfAborted();
         const startPage = batchIdx * batchSize + 1;
         const endPage = Math.min((batchIdx + 1) * batchSize, numPages);
-        
-        const batchProgress = ((batchIdx + 1) / totalBatches) * 98; // Reserve 98% for processing
-        const remainingBatches = totalBatches - batchIdx - 1;
-        const avgTimePerBatch = (Date.now() - startTime) / (batchIdx + 1);
-        const estimatedRemaining = Math.ceil((remainingBatches * avgTimePerBatch) / 1000);
-        
-        onProgress?.(
+
+        const batchProgress = ((batchIdx + 1) / totalBatches) * 96; // Reserve 4% for finalization
+        const elapsedMs = Date.now() - startTime;
+        const avgTimePerPage = processedPages > 0 ? elapsedMs / processedPages : elapsedMs;
+        const estimatedRemaining = processedPages > 0
+          ? Math.ceil(((numPages - processedPages) * avgTimePerPage) / 1000)
+          : undefined;
+
+        progressTracker.emit(
           batchProgress,
           `Processing pages ${startPage}-${endPage} of ${numPages}...`,
           estimatedRemaining
@@ -113,6 +136,7 @@ export class LargeFileProcessor {
 
         // Process pages in this batch
         for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
+          throwIfAborted();
           try {
             const page = await pdf.getPage(pageNum);
             const textContent = await page.getTextContent();
@@ -129,8 +153,22 @@ export class LargeFileProcessor {
             textChunks.push(`Page ${pageNum}:\n[Error reading page]\n\n`);
           }
 
+          processedPages += 1;
+
+          const pageProgress = Math.min(96, (processedPages / numPages) * 96);
+          const elapsedSeconds = (Date.now() - startTime) / 1000;
+          const avgSecondsPerPage = processedPages ? elapsedSeconds / processedPages : 0;
+          const remainingSeconds = processedPages
+            ? Math.ceil((numPages - processedPages) * avgSecondsPerPage)
+            : undefined;
+
+          progressTracker.emit(
+            pageProgress,
+            `Processing page ${pageNum} of ${numPages}...`,
+            remainingSeconds
+          );
+
           // Update job progress
-          const pageProgress = (pageNum / numPages) * 98;
           job.progress = pageProgress;
           if (pageNum % 10 === 0) { // Update every 10 pages
             await persistentStorage.saveProcessingJob(job);
@@ -140,7 +178,7 @@ export class LargeFileProcessor {
         // Save checkpoint
         if (saveCheckpoints && (endPage % this.CHECKPOINT_INTERVAL === 0 || endPage === numPages)) {
           upload.fullText = textChunks.join('');
-          upload.processingProgress = batchProgress;
+          upload.processingProgress = Math.max(upload.processingProgress || 0, batchProgress);
           await persistentStorage.saveUpload(upload);
           console.log(`[LargeFileProcessor] Checkpoint saved at page ${endPage}`);
         }
@@ -157,7 +195,7 @@ export class LargeFileProcessor {
       }
 
       // Finalize
-      onProgress?.(99, 'Finalizing...');
+      progressTracker.emit(99, 'Finalizing...');
       
       upload.fullText = textChunks.join('');
       upload.processed = true;
@@ -179,7 +217,7 @@ export class LargeFileProcessor {
       const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log(`[LargeFileProcessor] Completed! Extracted ${upload.fullText.length} characters from ${numPages} pages in ${processingTime}s`);
       
-      onProgress?.(100, 'Complete!', 0);
+      progressTracker.emit(100, 'Complete!', 0);
       
       return upload;
       
