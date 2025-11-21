@@ -28,8 +28,10 @@ import { NotesApp } from './components/NotesApp';
 import { TaskManager } from './components/TaskManager';
 import { HabitTracker } from './components/HabitTracker';
 import { ApiKeyNotice } from './components/ApiKeyNotice';
+import { CreditsPage } from './components/CreditsPage';
+import { CompaniesPage } from './components/CompaniesPage';
 
-export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'investors' | 'settings' | 'ai-coach' | 'study-timer' | 'image-recognition' | 'notes' | 'tasks' | 'habits';
+export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'investors' | 'settings' | 'ai-coach' | 'study-timer' | 'image-recognition' | 'notes' | 'tasks' | 'habits' | 'credits' | 'companies';
 
 const ACTIVE_TAB_STORAGE_KEY = 'activeTab';
 
@@ -49,6 +51,8 @@ const TABS: TabType[] = [
   'notes',
   'tasks',
   'habits',
+  'credits',
+  'companies',
 ];
 
 const API_KEY_REQUIRED_TABS: TabType[] = [
@@ -199,7 +203,7 @@ function AppContent() {
 
   // A map of tab keys to their corresponding components for cleaner rendering
   const viewMap: Record<TabType, React.ReactNode> = useMemo(() => ({
-    dashboard: <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={stableSetActiveTab} />,
+    dashboard: <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={stableSetActiveTab} apiKey={apiKey} />,
     upload: (
       <UploadManager
         uploads={uploads as Upload[]}
@@ -233,10 +237,14 @@ function AppContent() {
     tasks: <TaskManager />,
     habits: <HabitTracker />,
     investors: <InvestorPanel />,
+    credits: <CreditsPage />,
+    companies: <CompaniesPage />,
     settings: <Settings uploads={uploads as Upload[]} />,
   }), [apiKey, handleAddUpload, handleDeleteUpload, stableSetActiveTab, uploads]);
 
-  const activeView = viewMap[activeTab] || <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={stableSetActiveTab} />;
+  const activeView = viewMap[activeTab] || (
+    <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={stableSetActiveTab} apiKey={apiKey} />
+  );
 
   const apiKeyDescriptions: Partial<Record<TabType, string>> = {
     youtube: 'Video-to-lesson conversion relies on the OpenRouter API. Add your key to process clips.',
@@ -249,8 +257,10 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300">
+    <div className="min-h-screen bg-background transition-colors duration-300 relative overflow-hidden">
+      <div className="aurora-surface fixed inset-0 opacity-80 pointer-events-none" />
       <div className="gradient-mesh fixed inset-0 opacity-20 pointer-events-none" />
+      <div className="grid-overlay fixed inset-0 pointer-events-none" />
       <div className="relative z-10">
         <EnhancedNavigation activeTab={activeTab} onTabChange={stableSetActiveTab} />
         <main className="lg:ml-72 px-4 py-8 pb-20 md:pb-8">

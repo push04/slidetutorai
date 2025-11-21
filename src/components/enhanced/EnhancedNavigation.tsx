@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Upload, BookOpen, Brain, Layers, 
   MessageSquare, Settings, Sparkles,
   Clock, GraduationCap, Menu, X, Youtube, Scan,
-  Sun, Moon, TrendingUp, FileText, ListTodo, Target
+  Sun, Moon, TrendingUp, FileText, ListTodo, Target, Award, Building2
 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -55,6 +55,13 @@ const navGroups: NavGroup[] = [
       { id: 'habits', label: 'Habit Tracker', icon: Target, gradient: 'from-orange-500 to-red-500', description: 'Build better habits' },
       { id: 'study-timer', label: 'Study Timer', icon: Clock, gradient: 'from-secondary/80 to-accent', description: 'Track your focus time' },
       { id: 'image-recognition', label: 'Image to Text', icon: Scan, gradient: 'from-teal-500 to-cyan-500', description: 'Extract text from images' },
+    ]
+  },
+  {
+    label: 'Community',
+    items: [
+      { id: 'credits', label: 'Credits', icon: Award, gradient: 'from-amber-500 to-orange-500', description: 'Meet the team' },
+      { id: 'companies', label: 'Companies', icon: Building2, gradient: 'from-cyan-500 to-teal-500', description: 'White-label partners' },
     ]
   },
 ];

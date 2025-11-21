@@ -98,7 +98,12 @@ const MODEL_ORDER = {
 
 export class OpenRouterAPI {
   constructor(private apiKey: string) {
-    if (!apiKey || apiKey.trim() === '' || apiKey === 'placeholder-key') {
+    const envKey = (import.meta as any)?.env?.VITE_OPENROUTER_API_KEY;
+    if ((!apiKey || apiKey.trim() === '' || apiKey === 'placeholder-key') && envKey) {
+      this.apiKey = envKey;
+    }
+
+    if (!this.apiKey || this.apiKey.trim() === '' || this.apiKey === 'placeholder-key') {
       throw new Error('OpenRouter API key is required. Please configure your API key in Settings.');
     }
   }
@@ -571,6 +576,75 @@ export class OpenRouterAPI {
     onProgress?.(100, 'Complete!');
     
     return JSON.stringify({ quiz: finalQuestions });
+  }
+
+  async generateStudyPlan({
+    goal,
+    examDate,
+    weakTopics,
+    hoursPerWeek,
+  }: {
+    goal: string;
+    examDate?: string;
+    weakTopics?: string;
+    hoursPerWeek?: string;
+  }): Promise<string> {
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content:
+          'You are SlideTutor, an exam-aware study planner. Build concise weekly study plans with checkpoints, focus blocks, and revision loops. Keep output in markdown with bullets and mini tables where useful.',
+      },
+      {
+        role: 'user',
+        content: `Create a 4-week plan for ${goal}.
+Exam date: ${examDate || 'not provided'}
+Weak topics: ${weakTopics || 'not provided'}
+Hours per week: ${hoursPerWeek || 'not provided'}
+
+Requirements:
+- Show weekly themes, daily focus blocks, and hours per block
+- Add quick wins for weak topics
+- Include checkpoints (self-test, mock, review)
+- Add parent/mentor friendly summary line
+- Keep it concise but actionable`,
+      },
+    ];
+
+    const result = await this.completionWithFallback(MODEL_ORDER.lesson, messages, {
+      temperature: 0.5,
+      maxTokens: 1200,
+    });
+
+    if (result instanceof Response) throw new Error('Unexpected stream for study plan');
+    return result.content;
+  }
+
+  async generateStudyBoost(topic: string): Promise<string> {
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content:
+          'You create ultra-compact study boosts: a micro-quiz or recap under 10 minutes. Keep it motivating, specific, and include answers.',
+      },
+      {
+        role: 'user',
+        content: `Topic: ${topic}
+
+Produce a markdown boost with:
+- A 2-3 bullet recap
+- 3 rapid-fire questions with answers
+- A 1-line challenge to apply it today`,
+      },
+    ];
+
+    const result = await this.completionWithFallback(MODEL_ORDER.quiz, messages, {
+      temperature: 0.45,
+      maxTokens: 800,
+    });
+
+    if (result instanceof Response) throw new Error('Unexpected stream for study boost');
+    return result.content;
   }
 
   private async generateSingleQuiz(content: string, questionCount: number): Promise<string> {
