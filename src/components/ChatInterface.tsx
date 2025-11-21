@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, Bot, User } from 'lucide-react';
+import { MessageSquare, Send, Bot, User, Gauge, ShieldCheck, Sparkles } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Upload } from '../services/FileProcessor';
 import { ChunkedAIProcessor } from '../services/ChunkedAIProcessor';
+import { buildContextFromUploads } from '../utils/contextBuilder';
 
 interface ChatInterfaceProps {
   uploads: Upload[];
@@ -20,9 +22,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [contextPreview, setContextPreview] = useState('');
+  const [contextSize, setContextSize] = useState(0);
+  const [contextSlices, setContextSlices] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const indexedUploads = uploads.filter(u => u.indexed);
+
+  const MAX_CONTEXT_TOKENS = 3200;
+
+  useEffect(() => {
+    const { context, totalTokens, slicesUsed } = buildContextFromUploads(uploads, selectedUploads, MAX_CONTEXT_TOKENS);
+    setContextPreview(context);
+    setContextSize(totalTokens * 4); // Approximate chars
+    setContextSlices(slicesUsed.length);
+  }, [uploads, selectedUploads]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,25 +54,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
     );
   };
 
-  const getContext = () => {
-    const selectedData = uploads
-      .filter(u => selectedUploads.includes(u.id))
-      .map(u => u.fullText)
-      .join('\n\n---\n\n');
-    
-    return selectedData;
-  };
-
   const sendMessage = async () => {
     if (!inputValue.trim()) return;
-    
+
     if (!apiKey) {
-      alert('Please configure your OpenRouter API key in Settings to use chat.');
+      toast.error('Add your OpenRouter API key in Settings to chat.');
       return;
     }
-    
+
     if (selectedUploads.length === 0) {
-      alert('Please select at least one document to query.');
+      toast.error('Select at least one document to provide context.');
+      return;
+    }
+
+    if (!contextPreview) {
+      toast.error('Selected documents look empty. Try reprocessing your upload.');
       return;
     }
 
@@ -75,12 +85,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
 
     try {
       const processor = new ChunkedAIProcessor(apiKey);
-      const context = getContext();
-      
-      if (!context || context.trim().length === 0) {
-        throw new Error('Selected documents have no content');
-      }
-      
+      const context = contextPreview;
+
       const response = await processor.answerQuestionWithContext(inputValue, context);
 
       const assistantMessage: Message = {
@@ -94,7 +100,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
     } catch (error: any) {
       console.error('Chat failed:', error);
       let errorMsg = 'Sorry, I encountered an error. ';
-      
+
       if (error.message?.includes('API key')) {
         errorMsg += 'Please check your API key in Settings.';
       } else if (error.message?.includes('content')) {
@@ -124,11 +130,33 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-foreground mb-4">Your AI Study Buddy</h1>
-        <p className="text-lg text-muted-foreground">
-          Ask anything about your materials - get instant, intelligent answers that actually make sense.
-        </p>
+      <div className="glass-card border border-border/50 rounded-2xl p-6 shadow-lg shadow-primary/10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+              <Sparkles className="w-4 h-4" />
+              Context-aware tutor
+            </div>
+            <h1 className="text-3xl font-bold text-foreground">Your AI Study Buddy</h1>
+            <p className="text-sm text-muted-foreground">
+              Ask anything about your uploads. We auto-stitch the most relevant chunks so answers stay focused and fast.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
+              <div className="p-3 rounded-xl bg-muted/60 border border-border/60">
+                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase">
+                  <Gauge className="w-4 h-4 text-primary" /> Context budget
+                </div>
+                <p className="text-lg font-bold text-foreground">~{contextSize.toLocaleString()} chars • {contextSlices} slices</p>
+              </div>
+            <div className="p-3 rounded-xl bg-muted/60 border border-border/60">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase">
+                <ShieldCheck className="w-4 h-4 text-secondary" /> Guardrails
+              </div>
+              <p className="text-sm text-foreground">Rate-limit friendly retries & chunk stitching</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Document Selection */}
@@ -158,6 +186,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
           </div>
         )}
       </div>
+
+      {contextPreview && (
+        <div className="glass-card rounded-xl p-4 border border-border/50 shadow-sm text-sm text-muted-foreground whitespace-pre-wrap max-h-48 overflow-y-auto scrollbar-thin">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Condensed context preview
+            </div>
+            <span className="text-xs">Trimmed for efficiency</span>
+          </div>
+          {contextPreview}
+        </div>
+      )}
 
       {/* Chat Messages */}
       <div className="glass-card rounded-xl shadow-sm border border-border/40 h-96 flex flex-col">
