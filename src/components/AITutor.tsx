@@ -110,8 +110,18 @@ export function AITutor() {
     }
 
     synthRef.current.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
+    const toSpeakableText = (raw: string) => {
+      return raw
+        .replace(/#+\s*(.+)/g, 'Section: $1')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/[-•]\s*/g, ' - ')
+        .replace(/\n{2,}/g, '. ')
+        .replace(/\n/g, '. ')
+        .trim();
+    };
+
+    const utterance = new SpeechSynthesisUtterance(toSpeakableText(text));
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
@@ -334,7 +344,7 @@ export function AITutor() {
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your question here or use the microphone button to speak..."
-                  className="w-full h-full px-4 py-3 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  className="w-full h-full min-h-[220px] md:min-h-[260px] px-4 py-3 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                   disabled={isListening || isLoading}
                 />
               </div>

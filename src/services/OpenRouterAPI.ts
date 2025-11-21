@@ -98,7 +98,12 @@ const MODEL_ORDER = {
 
 export class OpenRouterAPI {
   constructor(private apiKey: string) {
-    if (!apiKey || apiKey.trim() === '' || apiKey === 'placeholder-key') {
+    const envKey = (import.meta as any)?.env?.VITE_OPENROUTER_API_KEY;
+    if ((!apiKey || apiKey.trim() === '' || apiKey === 'placeholder-key') && envKey) {
+      this.apiKey = envKey;
+    }
+
+    if (!this.apiKey || this.apiKey.trim() === '' || this.apiKey === 'placeholder-key') {
       throw new Error('OpenRouter API key is required. Please configure your API key in Settings.');
     }
   }
@@ -573,6 +578,75 @@ export class OpenRouterAPI {
     return JSON.stringify({ quiz: finalQuestions });
   }
 
+  async generateStudyPlan({
+    goal,
+    examDate,
+    weakTopics,
+    hoursPerWeek,
+  }: {
+    goal: string;
+    examDate?: string;
+    weakTopics?: string;
+    hoursPerWeek?: string;
+  }): Promise<string> {
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content:
+          'You are SlideTutor, an exam-aware study planner. Build concise weekly study plans with checkpoints, focus blocks, and revision loops. Keep output in markdown with bullets and mini tables where useful.',
+      },
+      {
+        role: 'user',
+        content: `Create a 4-week plan for ${goal}.
+Exam date: ${examDate || 'not provided'}
+Weak topics: ${weakTopics || 'not provided'}
+Hours per week: ${hoursPerWeek || 'not provided'}
+
+Requirements:
+- Show weekly themes, daily focus blocks, and hours per block
+- Add quick wins for weak topics
+- Include checkpoints (self-test, mock, review)
+- Add parent/mentor friendly summary line
+- Keep it concise but actionable`,
+      },
+    ];
+
+    const result = await this.completionWithFallback(MODEL_ORDER.lesson, messages, {
+      temperature: 0.5,
+      maxTokens: 1200,
+    });
+
+    if (result instanceof Response) throw new Error('Unexpected stream for study plan');
+    return result.content;
+  }
+
+  async generateStudyBoost(topic: string): Promise<string> {
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content:
+          'You create ultra-compact study boosts: a micro-quiz or recap under 10 minutes. Keep it motivating, specific, and include answers.',
+      },
+      {
+        role: 'user',
+        content: `Topic: ${topic}
+
+Produce a markdown boost with:
+- A 2-3 bullet recap
+- 3 rapid-fire questions with answers
+- A 1-line challenge to apply it today`,
+      },
+    ];
+
+    const result = await this.completionWithFallback(MODEL_ORDER.quiz, messages, {
+      temperature: 0.45,
+      maxTokens: 800,
+    });
+
+    if (result instanceof Response) throw new Error('Unexpected stream for study boost');
+    return result.content;
+  }
+
   private async generateSingleQuiz(content: string, questionCount: number): Promise<string> {
     const systemPrompt =
       `You are an expert quiz creator. Generate clear, well-explained multiple-choice questions from the provided content.\n\n` +
@@ -750,6 +824,60 @@ export class OpenRouterAPI {
     });
 
     if (result instanceof Response) throw new Error('Unexpected stream for generateFlashcards');
+    return result.content;
+  }
+
+  async generateCvResume(
+    profile: {
+      fullName: string;
+      role: string;
+      summary: string;
+      skills: string;
+      experience: string;
+      education: string;
+    },
+    onProgress?: ProgressCallback
+  ): Promise<string> {
+    const { fullName, role, summary, skills, experience, education } = profile;
+    if (!fullName || !role) {
+      throw new Error('Full name and target role are required for CV generation');
+    }
+
+    onProgress?.(15, 'Structuring sections...');
+
+    const systemPrompt =
+      'You are a career coach who writes concise, ATS-friendly resumes for students and early-career engineers. ' +
+      'Return markdown with clear headings, quantified bullet points, and confident tone.';
+
+    const userPrompt =
+      `Build a resume for ${fullName} targeting ${role}.\n\n` +
+      `Summary: ${summary}\n` +
+      `Skills: ${skills}\n` +
+      `Experience: ${experience}\n` +
+      `Education: ${education}\n\n` +
+      'Output format:\n' +
+      '# Full Name — Target Role\n' +
+      '## Summary\n- 3 lines max, crisp and confident.\n' +
+      '## Skills\n- Group into technical, tools, soft skills.\n' +
+      '## Experience\n- 3-6 bullet points with metrics and impact; lean on projects if no jobs.\n' +
+      '## Education\n- Degree, GPA (if strong), standout coursework.\n' +
+      '## Projects\n- 2-3 bullets highlighting outcomes, users, or performance.\n' +
+      '## Extras\n- Achievements, leadership, volunteering (optional).\n' +
+      'Keep it brief, energetic, and action-oriented.';
+
+    const messages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ];
+
+    onProgress?.(45, 'Drafting bullet points...');
+    const result = await this.completionWithFallback(MODEL_ORDER.chat, messages, {
+      maxTokens: 1800,
+      temperature: 0.35,
+    });
+    onProgress?.(90, 'Finishing touches...');
+
+    if (result instanceof Response) throw new Error('Unexpected stream for generateCvResume');
     return result.content;
   }
 

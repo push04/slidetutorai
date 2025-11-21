@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  LayoutDashboard, Upload, BookOpen, Brain, Layers, 
+  LayoutDashboard, Upload, BookOpen, Brain, Layers,
   MessageSquare, Settings, Sparkles,
   Clock, GraduationCap, Menu, X, Youtube, Scan,
-  Sun, Moon, TrendingUp, FileText, ListTodo, Target
+  Sun, Moon, TrendingUp, FileText, ListTodo, Target, Award, Building2, Flame, BadgeCheck
 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { cn } from '../../lib/utils';
@@ -38,6 +38,8 @@ const navGroups: NavGroup[] = [
       { id: 'lessons', label: 'Smart Lessons', icon: BookOpen, gradient: 'from-green-500 to-emerald-500', description: 'AI creates your lessons' },
       { id: 'quiz', label: 'Challenge Mode', icon: Brain, gradient: 'from-orange-500 to-red-500', description: 'Test your mastery' },
       { id: 'flashcards', label: 'Smart Cards', icon: Layers, gradient: 'from-indigo-500 to-purple-500', description: 'Learn faster, remember longer' },
+      { id: 'study-plan', label: 'AI Study Plan', icon: Target, gradient: 'from-secondary/80 to-accent', description: 'Board-aware roadmaps' },
+      { id: 'daily-boost', label: 'Daily Boost', icon: Flame, gradient: 'from-amber-500 to-orange-500', description: '10-minute drills' },
     ]
   },
   {
@@ -55,6 +57,14 @@ const navGroups: NavGroup[] = [
       { id: 'habits', label: 'Habit Tracker', icon: Target, gradient: 'from-orange-500 to-red-500', description: 'Build better habits' },
       { id: 'study-timer', label: 'Study Timer', icon: Clock, gradient: 'from-secondary/80 to-accent', description: 'Track your focus time' },
       { id: 'image-recognition', label: 'Image to Text', icon: Scan, gradient: 'from-teal-500 to-cyan-500', description: 'Extract text from images' },
+      { id: 'cv-builder', label: 'AI CV Builder', icon: BadgeCheck, gradient: 'from-blue-500 to-cyan-500', description: 'Placement-ready resumes' },
+    ]
+  },
+  {
+    label: 'Community',
+    items: [
+      { id: 'credits', label: 'Credits', icon: Award, gradient: 'from-amber-500 to-orange-500', description: 'Meet the team' },
+      { id: 'companies', label: 'Companies', icon: Building2, gradient: 'from-cyan-500 to-teal-500', description: 'White-label partners' },
     ]
   },
 ];

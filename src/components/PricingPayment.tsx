@@ -140,7 +140,7 @@ export function PricingPayment() {
             </p>
             <div className="mt-8 p-4 bg-muted/30 rounded-xl border border-border/50">
               <p className="text-sm text-muted-foreground">
-                You will receive a confirmation email within 24 hours. For immediate assistance, contact us at support@slidetutor.ai
+                You will receive a confirmation email within 24 hours. For immediate assistance, contact us at slidetutorai@gmail.com or call +91 6299549112.
               </p>
             </div>
           </CardContent>

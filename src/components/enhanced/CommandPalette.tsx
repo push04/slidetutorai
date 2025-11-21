@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Search, Upload, BookOpen, Brain, Layers, MessageSquare, 
-  Settings, Home, TrendingUp, Target, Clock, Zap
+import {
+  Search, Upload, BookOpen, Brain, Layers, MessageSquare,
+  Settings, Home, TrendingUp, Target, Clock, Zap, Flame, BadgeCheck
 } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import type { TabType } from '../../App';
@@ -67,6 +67,22 @@ export function CommandPalette({ onNavigate, onClose, isOpen }: CommandPalettePr
       keywords: ['cards', 'review', 'memorize', 'spaced repetition'],
     },
     {
+      id: 'nav-study-plan',
+      label: 'AI Study Plan',
+      icon: Target,
+      action: () => { onNavigate('study-plan'); onClose(); },
+      category: 'Navigation',
+      keywords: ['goal', 'board', 'plan', 'roadmap'],
+    },
+    {
+      id: 'nav-daily-boost',
+      label: 'Daily Boost',
+      icon: Flame,
+      action: () => { onNavigate('daily-boost'); onClose(); },
+      category: 'Navigation',
+      keywords: ['streak', 'boost', 'drill'],
+    },
+    {
       id: 'nav-chat',
       label: 'Chat Q&A',
       icon: MessageSquare,
@@ -81,6 +97,14 @@ export function CommandPalette({ onNavigate, onClose, isOpen }: CommandPalettePr
       action: () => { onNavigate('settings'); onClose(); },
       category: 'Navigation',
       keywords: ['config', 'preferences', 'api'],
+    },
+    {
+      id: 'nav-cv-builder',
+      label: 'AI CV Builder',
+      icon: BadgeCheck,
+      action: () => { onNavigate('cv-builder'); onClose(); },
+      category: 'Navigation',
+      keywords: ['resume', 'cv', 'career'],
     },
   ], [onNavigate, onClose]);
 

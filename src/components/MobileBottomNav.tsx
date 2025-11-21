@@ -1,6 +1,6 @@
 import React from 'react';
-import { 
-  LayoutDashboard, Upload, BookOpen, Brain, Youtube
+import {
+  LayoutDashboard, BookOpen, Brain, Youtube, Flame, Target
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { TabType } from '../App';
@@ -13,8 +13,10 @@ interface NavItem {
 
 const primaryNavItems: NavItem[] = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-  { id: 'youtube', label: 'YouTube', icon: Youtube },
   { id: 'lessons', label: 'Learn', icon: BookOpen },
+  { id: 'study-plan', label: 'Plan', icon: Target },
+  { id: 'daily-boost', label: 'Boost', icon: Flame },
+  { id: 'youtube', label: 'YouTube', icon: Youtube },
   { id: 'quiz', label: 'Quiz', icon: Brain },
 ];
 
@@ -26,7 +28,7 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps) {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-card dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 safe-area-bottom">
-      <div className="grid grid-cols-4 gap-1 px-2 py-1">
+      <div className="grid grid-cols-6 gap-1 px-2 py-1">
         {primaryNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;

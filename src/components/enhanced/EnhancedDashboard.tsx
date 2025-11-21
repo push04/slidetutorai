@@ -4,13 +4,16 @@ import { Button } from './Button';
 import type { TabType } from '../../App';
 import type { Upload as UploadType } from '../UploadManager';
 import { formatRelativeTime } from '../../lib/utils';
+import { StudyPlanWidget } from './StudyPlanWidget';
+import { StudyBoostWidget } from './StudyBoostWidget';
 
 interface EnhancedDashboardProps {
   uploads: UploadType[];
   onNavigate: (tab: TabType) => void;
+  apiKey?: string;
 }
 
-export function EnhancedDashboard({ uploads, onNavigate }: EnhancedDashboardProps) {
+export function EnhancedDashboard({ uploads, onNavigate, apiKey }: EnhancedDashboardProps) {
   const stats = {
     totalUploads: uploads.length,
     processedUploads: uploads.filter(u => u.processed).length,
@@ -23,31 +26,39 @@ export function EnhancedDashboard({ uploads, onNavigate }: EnhancedDashboardProp
   return (
     <div className="space-y-8 animate-fade-in-up">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl p-8 md:p-12 glass-card">
+      <div className="relative overflow-hidden rounded-3xl p-8 md:p-12 bg-white/80 dark:bg-card/80 border border-border/60 shadow-2xl shadow-primary/10 backdrop-blur-xl">
         <div className="gradient-mesh absolute inset-0 opacity-30" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-br from-primary to-secondary rounded-xl shadow-lg">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              Welcome to SlideTutor AI
-            </h1>
+        <div className="grid-overlay absolute inset-0" />
+        <div className="absolute -right-24 -top-24 w-80 h-80 rounded-full bg-primary/25 blur-3xl" />
+        <div className="absolute -left-16 bottom-0 w-72 h-72 rounded-full bg-secondary/30 blur-3xl" />
+        <div className="relative z-10 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-secondary/10 text-secondary ring-1 ring-secondary/30">
+              <Sparkles className="w-4 h-4" /> Goal-aware plans
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-accent/10 text-accent ring-1 ring-accent/30">
+              Daily boosts & streak savers
+            </span>
           </div>
-          <p className="text-lg text-muted-foreground max-w-3xl mb-6">
-            Transform your learning experience with AI-powered lessons, quizzes, and flashcards from your presentations and documents.
-          </p>
+          <div className="flex flex-col gap-3">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              SlideTutor AI — upload, learn, quiz, and level up
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-3xl">
+              Turn PDFs, videos, and notes into guided lessons, quizzes, flashcards, and streak-friendly boosts. Stay in flow with light or dark mode, glassy cards, and responsive layouts.
+            </p>
+          </div>
           <div className="flex flex-wrap gap-3">
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               size="lg"
               onClick={() => onNavigate('upload')}
               icon={<Upload className="w-5 h-5" />}
             >
               Upload Content
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="lg"
               onClick={() => onNavigate('lessons')}
               icon={<BookOpen className="w-5 h-5" />}
@@ -56,6 +67,11 @@ export function EnhancedDashboard({ uploads, onNavigate }: EnhancedDashboardProp
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <StudyPlanWidget apiKey={apiKey} />
+        <StudyBoostWidget apiKey={apiKey} />
       </div>
 
       {/* Stats Grid */}

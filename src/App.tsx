@@ -28,8 +28,15 @@ import { NotesApp } from './components/NotesApp';
 import { TaskManager } from './components/TaskManager';
 import { HabitTracker } from './components/HabitTracker';
 import { ApiKeyNotice } from './components/ApiKeyNotice';
+import { CreditsPage } from './components/CreditsPage';
+import { CompaniesPage } from './components/CompaniesPage';
+import { StudyPlanPage } from './components/StudyPlanPage';
+import { DailyBoostPage } from './components/DailyBoostPage';
+import { CVBuilder } from './components/CVBuilder';
+import { GlobalProgressProvider, useGlobalProgress } from './contexts/GlobalProgressContext';
+import { TopLoadingBar } from './components/TopLoadingBar';
 
-export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'investors' | 'settings' | 'ai-coach' | 'study-timer' | 'image-recognition' | 'notes' | 'tasks' | 'habits';
+export type TabType = 'dashboard' | 'upload' | 'youtube' | 'lessons' | 'quiz' | 'flashcards' | 'chat' | 'investors' | 'settings' | 'ai-coach' | 'study-timer' | 'image-recognition' | 'notes' | 'tasks' | 'habits' | 'credits' | 'companies' | 'study-plan' | 'daily-boost' | 'cv-builder';
 
 const ACTIVE_TAB_STORAGE_KEY = 'activeTab';
 
@@ -41,6 +48,9 @@ const TABS: TabType[] = [
   'quiz',
   'flashcards',
   'chat',
+  'study-plan',
+  'daily-boost',
+  'cv-builder',
   'investors',
   'settings',
   'ai-coach',
@@ -49,6 +59,8 @@ const TABS: TabType[] = [
   'notes',
   'tasks',
   'habits',
+  'credits',
+  'companies',
 ];
 
 const API_KEY_REQUIRED_TABS: TabType[] = [
@@ -81,6 +93,7 @@ function AppContent() {
     return 'dashboard';
   });
   const { isOpen: isPaletteOpen, close: closePalette } = useCommandPalette();
+  const progress = useGlobalProgress();
 
   const stableSetActiveTab = useCallback((tab: TabType) => {
     setActiveTab(tab);
@@ -121,6 +134,7 @@ function AppContent() {
       onProgress: (percent: number, message?: string, etaSeconds?: number) => void
     }
   ): Promise<Upload> => {
+    const progressId = progress.start('Uploading file...');
     const throwIfAborted = () => {
       if (opts.signal?.aborted) {
         throw new DOMException('Upload aborted', 'AbortError');
@@ -132,6 +146,7 @@ function AppContent() {
       throwIfAborted();
       lastProgress = Math.min(100, Math.max(lastProgress, percent));
       opts.onProgress(lastProgress, message, etaSeconds);
+      progress.update(lastProgress, message, progressId);
     };
 
     try {
@@ -180,13 +195,15 @@ function AppContent() {
 
       throwIfAborted();
       emitProgress(100, 'Complete', 0);
+      progress.complete(progressId);
 
       return newUpload;
     } catch (error) {
       console.error('Upload error:', error);
+      progress.complete(progressId);
       throw error;
     }
-  }, [createUploadMutation]);
+  }, [createUploadMutation, progress]);
 
   const handleDeleteUpload = useCallback((id: string) => {
     deleteUploadMutation.mutate(id);
@@ -199,7 +216,7 @@ function AppContent() {
 
   // A map of tab keys to their corresponding components for cleaner rendering
   const viewMap: Record<TabType, React.ReactNode> = useMemo(() => ({
-    dashboard: <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={stableSetActiveTab} />,
+    dashboard: <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={stableSetActiveTab} apiKey={apiKey} />,
     upload: (
       <UploadManager
         uploads={uploads as Upload[]}
@@ -223,6 +240,9 @@ function AppContent() {
     quiz: <QuizManager uploads={uploads as Upload[]} apiKey={apiKey} />,
     flashcards: <FlashcardManager uploads={uploads as Upload[]} apiKey={apiKey} />,
     chat: <ChatInterface uploads={uploads as Upload[]} apiKey={apiKey} />,
+    'study-plan': <StudyPlanPage apiKey={apiKey} />, 
+    'daily-boost': <DailyBoostPage apiKey={apiKey} />, 
+    'cv-builder': <CVBuilder apiKey={apiKey} />, 
     'ai-coach': <ProfessionalAICoach />,
     'study-timer': (
       <StudyTimer
@@ -233,10 +253,14 @@ function AppContent() {
     tasks: <TaskManager />,
     habits: <HabitTracker />,
     investors: <InvestorPanel />,
+    credits: <CreditsPage />,
+    companies: <CompaniesPage />,
     settings: <Settings uploads={uploads as Upload[]} />,
   }), [apiKey, handleAddUpload, handleDeleteUpload, stableSetActiveTab, uploads]);
 
-  const activeView = viewMap[activeTab] || <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={stableSetActiveTab} />;
+  const activeView = viewMap[activeTab] || (
+    <EnhancedDashboard uploads={uploads as Upload[]} onNavigate={stableSetActiveTab} apiKey={apiKey} />
+  );
 
   const apiKeyDescriptions: Partial<Record<TabType, string>> = {
     youtube: 'Video-to-lesson conversion relies on the OpenRouter API. Add your key to process clips.',
@@ -249,8 +273,10 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300">
+    <div className="min-h-screen bg-background transition-colors duration-300 relative overflow-hidden">
+      <div className="aurora-surface fixed inset-0 opacity-80 pointer-events-none" />
       <div className="gradient-mesh fixed inset-0 opacity-20 pointer-events-none" />
+      <div className="grid-overlay fixed inset-0 pointer-events-none" />
       <div className="relative z-10">
         <EnhancedNavigation activeTab={activeTab} onTabChange={stableSetActiveTab} />
         <main className="lg:ml-72 px-4 py-8 pb-20 md:pb-8">
@@ -306,7 +332,10 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <FlashcardProvider>
-              <AppContent />
+              <GlobalProgressProvider>
+                <TopLoadingBar />
+                <AppContent />
+              </GlobalProgressProvider>
             </FlashcardProvider>
           </AuthProvider>
         </ThemeProvider>
