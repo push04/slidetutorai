@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Send, Volume2, VolumeX, MessageSquare, Bot, User, Loader2, Trash2 } from 'lucide-react';
+import { Mic, MicOff, Send, Volume2, VolumeX, MessageSquare, Bot, User, Loader2, Trash2, Download } from 'lucide-react';
 import { Card, CardContent } from './enhanced/Card';
 import { Button } from './enhanced/Button';
 import { OpenRouterAPI } from '../lib/openrouter';
 import toast from 'react-hot-toast';
+import { downloadTextSectionsAsPdf, markdownToPlain } from '../utils/pdfUtils';
 
 interface Message {
   id: string;
@@ -26,12 +27,38 @@ export function AITutor() {
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const SESSION_KEY = 'slidetutor_ai_tutor_session';
+
   useEffect(() => {
     // Check if API key is in env
     const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
     if (envKey && envKey !== '') {
       setApiKey(envKey);
       setShowApiKeyInput(false);
+    }
+
+    // Restore prior conversation and draft
+    try {
+      const saved = localStorage.getItem(SESSION_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.messages)) {
+          setMessages(
+            parsed.messages.map((m: any) => ({
+              ...m,
+              timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+            }))
+          );
+        }
+        if (typeof parsed.draft === 'string') {
+          setInputText(parsed.draft);
+        }
+        if (typeof parsed.autoSpeak === 'boolean') {
+          setAutoSpeak(parsed.autoSpeak);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to restore AI tutor session', error);
     }
 
     // Initialize speech synthesis
@@ -79,6 +106,16 @@ export function AITutor() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const payload = {
+      messages: messages.map((m) => ({ ...m, timestamp: m.timestamp.toISOString() })),
+      draft: inputText,
+      autoSpeak,
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+  }, [messages, inputText, autoSpeak]);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
@@ -118,6 +155,7 @@ export function AITutor() {
         .replace(/[-•]\s*/g, ' - ')
         .replace(/\n{2,}/g, '. ')
         .replace(/\n/g, '. ')
+        .replace(/\s{2,}/g, ' ')
         .trim();
     };
 
@@ -158,7 +196,9 @@ export function AITutor() {
       return;
     }
 
-    if (!apiKey) {
+    const resolvedKey = apiKey || import.meta.env.VITE_OPENROUTER_API_KEY || '';
+
+    if (!resolvedKey) {
       toast.error('Please enter your OpenRouter API key');
       return;
     }
@@ -176,7 +216,7 @@ export function AITutor() {
     setIsLoading(true);
 
     try {
-      const api = new OpenRouterAPI(apiKey);
+      const api = new OpenRouterAPI(resolvedKey);
       
       const conversationContext = messages
         .slice(-6)
@@ -278,6 +318,21 @@ export function AITutor() {
     );
   }
 
+  const handleDownloadPdf = () => {
+    if (messages.length === 0) {
+      toast.error('No conversation to export yet.');
+      return;
+    }
+
+    const sections = messages.map((m, idx) => ({
+      heading: `${m.role === 'user' ? 'Student' : 'Tutor'} • ${new Date(m.timestamp).toLocaleString()}`,
+      body: markdownToPlain(m.content),
+    }));
+
+    downloadTextSectionsAsPdf('SlideTutor AI Tutor Conversation', sections, 'slidetutor_ai_tutor_chat.pdf');
+    toast.success('Conversation saved as PDF');
+  };
+
   return (
     <div className="h-screen flex flex-col bg-background animate-fade-in-up">
       <div className="border-b border-border bg-glass-card backdrop-blur-xl">
@@ -296,6 +351,16 @@ export function AITutor() {
             </div>
 
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadPdf}
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download PDF
+              </Button>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -344,7 +409,7 @@ export function AITutor() {
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your question here or use the microphone button to speak..."
-                  className="w-full h-full min-h-[220px] md:min-h-[260px] px-4 py-3 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  className="w-full h-full min-h-[260px] md:min-h-[320px] lg:min-h-[360px] px-4 py-4 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                   disabled={isListening || isLoading}
                 />
               </div>

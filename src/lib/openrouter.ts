@@ -32,13 +32,17 @@ export class OpenRouterAPI {
   private apiKey: string;
 
   constructor(apiKey: string) {
-    this.apiKey = apiKey;
+    const envKey = (import.meta as any)?.env?.VITE_OPENROUTER_API_KEY;
+    this.apiKey = apiKey && apiKey.trim().length > 0 ? apiKey : envKey;
   }
 
   async generateCompletion(
     messages: ChatMessage[],
     options: CompletionOptions = {}
   ): Promise<string> {
+    if (!this.apiKey || this.apiKey.trim().length === 0) {
+      throw new Error('OpenRouter API key is missing. Please add it in Settings.');
+    }
     const {
       temperature = 0.7,
       maxTokens = 4000,

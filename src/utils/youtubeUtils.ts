@@ -53,7 +53,8 @@ export async function fetchYouTubeData(url: string): Promise<YouTubeVideoData> {
       description: metadata.description,
       transcript: transcriptResult.text.trim(),
       hasTranscript: true,
-      transcriptSource: 'YouTube Data API captions',
+      transcriptSource: 'open-captions',
+      transcriptReason: transcriptResult.reason,
     };
   }
 

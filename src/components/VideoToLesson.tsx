@@ -94,7 +94,9 @@ export function VideoToLesson({ onVideoProcessed, apiKey }: VideoToLessonProps) 
 
       if (ytData.hasTranscript && ytData.transcript) {
         setRawTranscript(ytData.transcript);
-        setTranscriptStatus('Found captions automatically. Review below, then generate your study pack.');
+        setTranscriptStatus(
+          ytData.transcriptReason || 'Found captions automatically. Review below, then generate your study pack.'
+        );
       } else {
         setTranscriptStatus(
           ytData.transcriptReason ||
@@ -336,8 +338,9 @@ Use markdown with headers, bullets, and short paragraphs. Note clearly that this
               <div className="flex items-start gap-3 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-3">
                 <AlertCircle className="w-4 h-4 mt-0.5" />
                 <div>
-                  <p className="font-medium text-foreground">Transcript guidance</p>
+                  <p className="font-medium text-foreground">Transcript status</p>
                   <p>{transcriptStatus}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Tip: On YouTube, tap ⋮ → "Show transcript" → copy & paste below. Upload .srt/.vtt if you already downloaded captions.</p>
                 </div>
               </div>
             )}

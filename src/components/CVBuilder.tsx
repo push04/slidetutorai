@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeftRight, CheckCircle2, Download, FileText, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowLeftRight, CheckCircle2, Download, FileText, Sparkles, Wand2, Palette } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './enhanced/Card';
 import { Button } from './enhanced/Button';
 import { OpenRouterAPI } from '../services/OpenRouterAPI';
 import { useGlobalProgress } from '../contexts/GlobalProgressContext';
+import { downloadTextSectionsAsPdf, markdownToPlain } from '../utils/pdfUtils';
 
 interface CVBuilderProps {
   apiKey?: string;
@@ -41,9 +42,13 @@ export function CVBuilder({ apiKey }: CVBuilderProps) {
   const [skills, setSkills] = useState('JavaScript, TypeScript, React, Tailwind, SQL, Communication, Ownership');
   const [experience, setExperience] = useState('Built dashboards for classmates; led a mini study group that improved average scores.');
   const [education, setEducation] = useState('B.Tech/B.Sc candidate — GPA 8.5/10; coursework in algorithms, OS, statistics.');
+  const [tone, setTone] = useState('Warm & confident');
+  const [targetCompany, setTargetCompany] = useState('Any fast-learning environment / edtech / SaaS');
+  const [standout, setStandout] = useState('Hackathon finalist; shipped two side projects used by peers.');
   const [preview, setPreview] = useState(DEFAULT_PREVIEW);
   const [isGenerating, setIsGenerating] = useState(false);
   const { start, update, complete } = useGlobalProgress();
+  const STORAGE_KEY = 'slidetutor_cv_builder_state';
 
   const resolvedKey = useMemo(
     () => (apiKey && apiKey.trim().length > 0 ? apiKey : (import.meta.env?.VITE_OPENROUTER_API_KEY ?? '')),
@@ -57,7 +62,66 @@ export function CVBuilder({ apiKey }: CVBuilderProps) {
     skills,
     experience,
     education,
+    tone,
+    targetCompany,
+    standout,
   });
+
+  const buildLocalPreview = () => `# ${fullName} — ${role}
+
+## Summary
+${summary} (${tone})
+
+## Skills
+${skills}
+
+## Experience
+${experience}
+
+## Education
+${education}
+
+## Extras
+Target: ${targetCompany}
+Highlights: ${standout}`;
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setFullName(parsed.fullName ?? fullName);
+        setRole(parsed.role ?? role);
+        setSummary(parsed.summary ?? summary);
+        setSkills(parsed.skills ?? skills);
+        setExperience(parsed.experience ?? experience);
+        setEducation(parsed.education ?? education);
+        setTone(parsed.tone ?? tone);
+        setTargetCompany(parsed.targetCompany ?? targetCompany);
+        setStandout(parsed.standout ?? standout);
+        setPreview(parsed.preview ?? DEFAULT_PREVIEW);
+      }
+    } catch (error) {
+      console.warn('Failed to restore CV builder state', error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const payload = {
+      fullName,
+      role,
+      summary,
+      skills,
+      experience,
+      education,
+      tone,
+      targetCompany,
+      standout,
+      preview,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }, [fullName, role, summary, skills, experience, education, tone, targetCompany, standout, preview]);
 
   const handleGenerate = async () => {
     if (!fullName.trim() || !role.trim()) {
@@ -66,7 +130,7 @@ export function CVBuilder({ apiKey }: CVBuilderProps) {
     }
 
     if (!resolvedKey) {
-      setPreview(DEFAULT_PREVIEW.replace('Your Name', fullName).replace('Role', role));
+      setPreview(buildLocalPreview());
       toast.success('Starter CV loaded. Add your API key for a sharper draft.');
       return;
     }
@@ -108,6 +172,16 @@ export function CVBuilder({ apiKey }: CVBuilderProps) {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadPdf = () => {
+    const plain = markdownToPlain(preview);
+    const sections = [
+      { heading: `${fullName} — ${role}`, body: plain },
+      { heading: 'Contact for interviews', body: `${targetCompany}. Highlights: ${standout}` },
+    ];
+    downloadTextSectionsAsPdf('SlideTutor CV', sections, `${fullName.replace(/\s+/g, '_') || 'cv'}_slidetutor.pdf`);
+    toast.success('CV saved as PDF');
+  };
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card/80 shadow-2xl shadow-primary/10 p-6 md:p-10">
@@ -126,6 +200,9 @@ export function CVBuilder({ apiKey }: CVBuilderProps) {
             </span>
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 text-accent ring-1 ring-accent/25">
               <ArrowLeftRight className="w-4 h-4" /> Swap between summary + bullet focus
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary ring-1 ring-primary/25">
+              <Palette className="w-4 h-4" /> Tone presets & PDF export
             </span>
           </div>
         </div>
@@ -201,6 +278,42 @@ export function CVBuilder({ apiKey }: CVBuilderProps) {
               />
             </label>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <label className="space-y-2 text-sm font-medium text-foreground">
+                Tone
+                <select
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  className="w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
+                >
+                  <option>Warm & confident</option>
+                  <option>Concise & metrics-led</option>
+                  <option>Formal & academic</option>
+                  <option>Creative & storytelling</option>
+                </select>
+              </label>
+              <label className="space-y-2 text-sm font-medium text-foreground">
+                Target company or industry
+                <input
+                  value={targetCompany}
+                  onChange={(e) => setTargetCompany(e.target.value)}
+                  className="w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-secondary/60"
+                  placeholder="e.g., Edtech, SaaS, fintech, consulting"
+                />
+              </label>
+            </div>
+
+            <label className="space-y-2 text-sm font-medium text-foreground">
+              Standout accomplishments
+              <textarea
+                value={standout}
+                onChange={(e) => setStandout(e.target.value)}
+                rows={2}
+                className="w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/60"
+                placeholder="Awards, leadership, top metrics, community impact"
+              />
+            </label>
+
             <div className="flex flex-wrap gap-3">
               <Button onClick={handleGenerate} disabled={isGenerating} icon={<Sparkles className="w-4 h-4" />}>
                 {isGenerating ? 'Crafting...' : 'Generate AI CV'}
@@ -210,6 +323,9 @@ export function CVBuilder({ apiKey }: CVBuilderProps) {
               </Button>
               <Button variant="outline" onClick={handleDownload} icon={<Download className="w-4 h-4" />}>
                 Download .md
+              </Button>
+              <Button variant="outline" onClick={handleDownloadPdf} icon={<Download className="w-4 h-4" />}>
+                Download PDF
               </Button>
             </div>
           </CardContent>

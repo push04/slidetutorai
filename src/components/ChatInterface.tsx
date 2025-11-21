@@ -27,6 +27,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
   const [contextSlices, setContextSlices] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const CHAT_STORAGE_KEY = 'slidetutor_context_chat';
+
   const indexedUploads = uploads.filter(u => u.indexed);
 
   const MAX_CONTEXT_TOKENS = 3200;
@@ -37,6 +39,35 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ uploads, apiKey })
     setContextSize(totalTokens * 4); // Approximate chars
     setContextSlices(slicesUsed.length);
   }, [uploads, selectedUploads]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.messages)) {
+          setMessages(parsed.messages);
+        }
+        if (Array.isArray(parsed.selectedUploads)) {
+          setSelectedUploads(parsed.selectedUploads);
+        }
+        if (typeof parsed.draft === 'string') {
+          setInputValue(parsed.draft);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to restore context chat state', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    const payload = {
+      messages,
+      selectedUploads,
+      draft: inputValue,
+    };
+    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
+  }, [messages, selectedUploads, inputValue]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
