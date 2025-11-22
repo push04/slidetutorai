@@ -26,6 +26,7 @@ export interface ProgressCallback {
  * Order = preference. Availability can change; fallback handles errors.
  */
 const MODELS_POOL: readonly string[] = [
+  'nvidia/nemotron-nano-12b-v2-vl:free',
   'meta-llama/llama-3.1-8b-instruct:free',
   'qwen/qwen-2.5-32b-instruct:free',
   'google/gemma-2-9b-it:free',
